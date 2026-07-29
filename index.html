@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Burger Nick — Hamburguesas premium, ingredientes seleccionados y una experiencia moderna. Pedí online o por WhatsApp."
+    />
+    <meta
+      name="keywords"
+      content="Burger Nick, hamburguesas premium, hamburguesas artesanales, delivery, pedidos online, WhatsApp, Misiones"
+    />
+    <meta name="author" content="Burger Nick" />
+    <meta name="theme-color" content="#050505" />
+    <meta name="robots" content="index,follow" />
+    <meta property="og:locale" content="es_AR" />
+    <meta property="og:site_name" content="Burger Nick" />
+    <meta property="og:title" content="Burger Nick | Hamburguesas premium" />
+    <meta
+      property="og:description"
+      content="Calidad, sabor y una experiencia hecha para disfrutar. Conocé el menú de Burger Nick."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/burger-nick-logo.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Burger Nick | Hamburguesas premium" />
+    <meta
+      name="twitter:description"
+      content="Hamburguesas premium hechas para disfrutar. Pedí online."
+    />
+    <meta name="twitter:image" content="/burger-nick-logo.png" />
+    <title>Burger Nick | Hamburguesas premium — Pedí online</title>
+    <link rel="icon" type="image/png" href="/burger-nick-logo.png" />
+    <link rel="apple-touch-icon" href="/burger-nick-logo.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="https://firestore.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <link rel="stylesheet" href="css/styles.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Restaurant",
+        "name": "Burger Nick",
+        "image": "/burger-nick-logo.png",
+        "servesCuisine": "Hamburguesas",
+        "priceRange": "$$",
+        "telephone": "+5493765130819",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "Juan José Lanusse 647",
+          "addressCountry": "AR",
+          "addressLocality": "Apóstoles",
+          "addressRegion": "Misiones",
+          "postalCode": "3350"
+        },
+        "sameAs": [
+          "https://www.instagram.com/burger.nick_/",
+          "https://www.threads.com/@burger.nick_"
+        ],
+        "acceptsReservations": "true",
+        "hasMenu": "/#menu"
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#inicio">Saltar al contenido principal</a>
+    <!-- ========== HEADER ========== -->
+    <header class="header" id="header">
+      <div class="container header__inner">
+        <a href="#inicio" class="header__brand" aria-label="Burger Nick — Inicio">
+          <img src="/burger-nick-logo.png" alt="Burger Nick" class="header__logo" width="150" height="54" />
+          <span class="header__brand-text">
+            <span class="header__name">Burger Nick</span>
+            <span class="header__tag">Since 2024</span>
+          </span>
+        </a>
+
+        <nav class="nav" id="nav" aria-label="Navegación principal">
+          <ul class="nav__list">
+            <li><a href="#inicio" class="nav__link">Inicio</a></li>
+            <li><a href="#nosotros" class="nav__link">Nosotros</a></li>
+            <li><a href="#menu" class="nav__link">Menú</a></li>
+            <li><a href="#promociones" class="nav__link">Promociones</a></li>
+            <li><a href="#reservas" class="nav__link">Reservas</a></li>
+            <li><a href="#galeria" class="nav__link">Galería</a></li>
+            <li><a href="#faq" class="nav__link">Preguntas frecuentes</a></li>
+            <li><a href="#contacto" class="nav__link">Contacto</a></li>
+          </ul>
+        </nav>
+
+        <div class="header__actions">
+          <button type="button" class="cart-btn" data-open-cart aria-label="Abrir carrito">
+            <svg class="cart-btn__svg" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M6 7h15l-1.4 8.2a2 2 0 0 1-2 1.8H9.2a2 2 0 0 1-2-1.6L5.2 4.5A2 2 0 0 0 3.3 3H2" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="10" cy="20" r="1.3" fill="currentColor" stroke="none"/>
+              <circle cx="18" cy="20" r="1.3" fill="currentColor" stroke="none"/>
+            </svg>
+            <span class="cart-badge" id="cartCount" hidden>0</span>
+          </button>
+          <button type="button" class="btn btn--primary btn--sm" data-open-order>
+            Pedir Ahora
+          </button>
+          <button
+            type="button"
+            class="header__toggle"
+            id="navToggle"
+            aria-label="Abrir menú"
+            aria-expanded="false"
+            aria-controls="nav"
+          >
+            <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <!-- ========== HERO ========== -->
+      <section class="hero" id="inicio" aria-label="Inicio">
+        <div class="hero__media" aria-hidden="true">
+          <video class="hero__video" id="heroVideo" autoplay muted loop playsinline preload="metadata" poster="/burger-nick-logo.png">
+            <source src="/hero-burger.mp4" type="video/mp4" />
+          </video>
+          <img src="/burger-nick-logo.png" alt="" class="hero__img" id="heroBgImage" width="1920" height="1080" fetchpriority="high" hidden />
+          <div class="hero__overlay"></div>
+          <div class="hero__grain"></div>
+        </div>
+        <div class="container hero__content">
+          <p class="hero__eyebrow">Burger Nick · Since 2024</p>
+          <h1 class="hero__title">
+            <span>Las mejores</span>
+            <strong>hamburguesas</strong>
+            <em>de la ciudad</em>
+          </h1>
+          <p class="hero__subtitle">
+            Una hamburguesería donde la calidad, el sabor y la experiencia son lo primero.
+          </p>
+          <div class="hero__cta">
+            <a href="#menu" class="btn btn--primary">Ver Menú</a>
+            <a href="https://wa.me/5493765130819?text=Hola%20Burger%20Nick%2C%20quiero%20hacer%20un%20pedido." class="btn btn--ghost" target="_blank" rel="noopener noreferrer">Pedir Ahora</a>
+          </div>
+        </div>
+        <a href="#nosotros" class="hero__scroll" aria-label="Conocer Burger Nick">
+          <span></span>
+        </a>
+      </section>
+
+      <div class="section-divider" aria-hidden="true"></div>
+
+      <!-- ========== BENEFICIOS ========== -->
+      <section class="section benefits" id="beneficios">
+        <div class="container">
+          <header class="section__head">
+            <p class="eyebrow">Por qué elegirnos</p>
+            <h2 class="section__title">Calidad en cada detalle</h2>
+          </header>
+          <div class="benefits__grid" role="list">
+            <article class="benefit" role="listitem">
+              <div class="benefit__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M12 2c-2 4-6 6-6 10a6 6 0 0 0 12 0c0-4-4-6-6-10z" />
+                </svg>
+              </div>
+              <h3>Carne 100% vacuna</h3>
+              <p>Medallones jugosos preparados al momento, sin atajos.</p>
+            </article>
+            <article class="benefit" role="listitem">
+              <div class="benefit__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M12 3l2.2 4.5L19 8.2l-3.5 3.4.8 4.9L12 14.3 7.7 16.5l.8-4.9L5 8.2l4.8-.7L12 3z" />
+                </svg>
+              </div>
+              <h3>Ingredientes frescos</h3>
+              <p>Pan, vegetales y salsas seleccionados todos los días.</p>
+            </article>
+            <article class="benefit" role="listitem">
+              <div class="benefit__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M3 7h13l3 5v5H3V7z" />
+                  <circle cx="7.5" cy="17.5" r="1.5" />
+                  <circle cx="16.5" cy="17.5" r="1.5" />
+                </svg>
+              </div>
+              <h3>Delivery rápido</h3>
+              <p>Llegamos calientes a tu puerta, con costo transparente.</p>
+            </article>
+            <article class="benefit" role="listitem">
+              <div class="benefit__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <rect x="3" y="6" width="18" height="12" rx="2" />
+                  <path d="M3 10h18" />
+                </svg>
+              </div>
+              <h3>Pagos seguros</h3>
+              <p>Mercado Pago, transferencia, tarjeta o efectivo.</p>
+            </article>
+            <article class="benefit" role="listitem">
+              <div class="benefit__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </div>
+              <h3>Atención personalizada</h3>
+              <p>Te acompañamos por WhatsApp en cada pedido.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <div class="section-divider" aria-hidden="true"></div>
+
+      <!-- ========== MENÚ ========== -->
+      <section class="section menu" id="menu">
+        <div class="container">
+          <header class="section__head">
+            <p class="eyebrow">Nuestro menú</p>
+            <h2 class="section__title">Elegí tu favorita</h2>
+            <p class="section__lead">
+              Catálogo visual con precios claros. Pedí en segundos.
+            </p>
+          </header>
+
+          <div class="menu__filters" role="tablist" aria-label="Filtrar menú">
+            <button type="button" class="filter-btn is-active" data-filter="all" role="tab" aria-selected="true">
+              Todo
+            </button>
+            <button type="button" class="filter-btn" data-filter="burgers" role="tab" aria-selected="false">
+              Hamburguesas
+            </button>
+            <button type="button" class="filter-btn" data-filter="sides" role="tab" aria-selected="false">
+              Acompañamientos
+            </button>
+            <button type="button" class="filter-btn" data-filter="drinks" role="tab" aria-selected="false">
+              Bebidas
+            </button>
+          </div>
+
+          <div class="menu__grid" id="menuGrid" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <div class="section-divider" aria-hidden="true"></div>
+
+      <!-- ========== PROMOCIONES ========== -->
+      <section class="section promos" id="promociones">
+        <div class="container">
+          <header class="section__head">
+            <p class="eyebrow">Selección especial</p>
+            <h2 class="section__title">Promociones</h2>
+            <p class="section__lead">Combos pensados para compartir y disfrutar.</p>
+          </header>
+          <div class="promos__grid" id="promosGrid"></div>
+        </div>
+      </section>
+
+      <!-- ========== RESERVAS ========== -->
+      <section class="section reservations" id="reservas">
+        <div class="container reservations__grid reveal">
+          <div class="reservations__content">
+            <p class="eyebrow">Tu mesa, tu momento</p>
+            <h2 class="section__title">Reservá una experiencia Burger Nick</h2>
+            <p class="section__lead">
+              Escribinos por WhatsApp con la fecha, el horario y la cantidad de personas.
+              Nuestro equipo confirmará la disponibilidad.
+            </p>
+            <ul class="reservations__features">
+              <li>Confirmación personalizada</li>
+              <li>Atención directa por WhatsApp</li>
+              <li>Ideal para encuentros y celebraciones</li>
+            </ul>
+          </div>
+          <div class="reservations__card">
+            <span class="reservations__number">01</span>
+            <p>Elegí tu fecha y horario.</p>
+            <span class="reservations__number">02</span>
+            <p>Indicá cuántas personas son.</p>
+            <span class="reservations__number">03</span>
+            <p>Recibí la confirmación de nuestro equipo.</p>
+            <a class="btn btn--light btn--block" href="https://wa.me/5493765130819?text=Hola%20Burger%20Nick%2C%20quiero%20consultar%20por%20una%20reserva." target="_blank" rel="noopener noreferrer">Consultar disponibilidad</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== NOSOTROS ========== -->
+      <section class="section about" id="nosotros">
+        <div class="container about__grid">
+          <div class="about__media">
+            <img
+              id="aboutImage"
+              src="/burger-nick-logo.png"
+              alt="Burger Nick — hamburguesas premium"
+              loading="lazy"
+              width="800"
+              height="1000"
+            />
+            <img
+              src="/burger-nick-logo.png"
+              alt=""
+              class="about__badge"
+              width="120"
+              height="120"
+              aria-hidden="true"
+            />
+          </div>
+          <div class="about__content">
+            <p class="eyebrow">Nuestra historia</p>
+            <h2 class="section__title">Sobre Nosotros</h2>
+            <p id="aboutDescription">
+              Burger Nick nació para transformar una hamburguesa en una experiencia.
+              Combinamos ingredientes seleccionados, cocina al momento y una estética
+              simple para que el sabor sea siempre protagonista.
+            </p>
+            <div class="about__timeline">
+              <div class="about__blocks">
+                <article>
+                  <h3>Misión</h3>
+                  <p id="aboutMission">Servir sabor memorable, con calidad constante y atención cercana.</p>
+                </article>
+                <article>
+                  <h3>Visión</h3>
+                  <p id="aboutVision">Ser la hamburguesería de referencia de la zona, pedido tras pedido.</p>
+                </article>
+                <article>
+                  <h3>Calidad</h3>
+                  <p id="aboutQuality">Ingredientes frescos, cocina al momento y cero compromiso con el sabor.</p>
+                </article>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="section-divider" aria-hidden="true"></div>
+
+      <!-- ========== GALERÍA ========== -->
+      <section class="section gallery" id="galeria">
+        <div class="container">
+          <header class="section__head">
+            <p class="eyebrow">Dentro de Burger Nick</p>
+            <h2 class="section__title">Galería</h2>
+            <p class="section__lead">Texturas, detalles y momentos que hablan por nosotros.</p>
+          </header>
+          <div class="gallery__masonry" id="galleryGrid" aria-live="polite">
+            <div class="menu-loading">Cargando galería...</div>
+          </div>
+          <div id="lightboxRoot"></div>
+        </div>
+      </section>
+
+      <div class="section-divider" aria-hidden="true"></div>
+
+      <!-- ========== FAQ ========== -->
+      <section class="section faq" id="faq">
+        <div class="container faq__wrap">
+          <header class="section__head">
+            <p class="eyebrow">Ayuda</p>
+            <h2 class="section__title">Preguntas frecuentes</h2>
+          </header>
+          <div class="accordion" id="faqAccordion"></div>
+        </div>
+      </section>
+
+      <!-- ========== CONTACTO ========== -->
+      <section class="section contact" id="contacto">
+        <div class="container">
+          <header class="section__head">
+            <p class="eyebrow">Estamos cerca</p>
+            <h2 class="section__title">Contacto y ubicación</h2>
+          </header>
+
+          <div class="contact__grid">
+            <div class="contact__info">
+              <ul class="contact__list">
+                <li>
+                  <strong>Dirección</strong>
+                  <span id="contactAddress">Juan José Lanusse 647, Apóstoles, Misiones</span>
+                  <a
+                    id="contactMapsLink"
+                    href="https://www.google.com/maps?q=-27.91125,-55.75624"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="contact__maps"
+                    >Ver en Google Maps</a
+                  >
+                </li>
+                <li>
+                  <strong>WhatsApp</strong>
+                  <a
+                    id="contactWhatsapp"
+                    href="https://wa.me/5493765130819"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >3765130819</a
+                  >
+                  <a
+                    id="contactWhatsappSecondary"
+                    href="https://wa.me/5493758460155"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >3758460155</a
+                  >
+                </li>
+                <li>
+                  <strong>Horarios</strong>
+                  <span id="contactHours">Martes a domingo · 19:00–00:00</span>
+                </li>
+                <li class="contact__social">
+                  <strong>Redes</strong>
+                  <span>
+                    <a
+                      id="contactIg"
+                      href="https://www.instagram.com/burger.nick_/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      >Instagram</a
+                    >
+                    ·
+                    <a
+                      id="contactFb"
+                      href="https://www.threads.com/@burger.nick_?xmt=AQG07ywm8WoDJn94yh7xR0YzUhZHOT_LHABVxYKyFgBzrzw"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      >Threads</a
+                    >
+                  </span>
+                </li>
+              </ul>
+
+              <form class="contact__form" id="contactForm" novalidate>
+                <h3>Escribinos</h3>
+                <div class="form-row">
+                  <label for="cName">Nombre</label>
+                  <input type="text" id="cName" name="name" required autocomplete="name" />
+                </div>
+                <div class="form-row">
+                  <label for="cEmail">Email</label>
+                  <input type="email" id="cEmail" name="email" required autocomplete="email" />
+                </div>
+                <div class="form-row">
+                  <label for="cMessage">Mensaje</label>
+                  <textarea id="cMessage" name="message" rows="4" required></textarea>
+                </div>
+                <button type="submit" class="btn btn--primary btn--block">Enviar mensaje</button>
+                <p class="form-note" id="contactNote" hidden></p>
+              </form>
+            </div>
+
+            <div class="contact__map-wrap">
+              <div id="contactMap" class="map" role="img" aria-label="Mapa de ubicación de Burger Nick"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ========== FOOTER ========== -->
+    <footer class="footer">
+      <div class="container footer__grid">
+        <div class="footer__brand">
+          <img src="/burger-nick-logo.png" alt="Burger Nick" width="180" height="72" />
+          <p id="footerTagline">Sabor sin excesos. Calidad sin atajos.</p>
+          <div class="footer__social">
+            <a
+              id="footerIg"
+              href="https://www.instagram.com/burger.nick_/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Instagram"
+              >IG</a
+            >
+            <a
+              id="footerFb"
+              href="https://www.threads.com/@burger.nick_?xmt=AQG07ywm8WoDJn94yh7xR0YzUhZHOT_LHABVxYKyFgBzrzw"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Threads"
+              >TH</a
+            >
+            <a
+              id="footerWa"
+              href="https://wa.me/5493765130819"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="WhatsApp"
+              >WA</a
+            >
+            <span id="footerExtraSocial"></span>
+          </div>
+        </div>
+        <div>
+          <h4>Enlaces rápidos</h4>
+          <ul>
+            <li><a href="#menu">Menú</a></li>
+            <li><a href="#promociones">Promociones</a></li>
+            <li><a href="#reservas">Reservas</a></li>
+            <li><a href="#nosotros">Nosotros</a></li>
+            <li><a href="#galeria">Galería</a></li>
+            <li><a href="#faq">FAQ</a></li>
+            <li><a href="#contacto">Contacto</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Legal</h4>
+          <ul>
+            <li><a href="/legal.html#terminos">Términos y condiciones</a></li>
+            <li><a href="/legal.html#privacidad">Política de privacidad</a></li>
+            <li><a href="/legal.html#cookies">Política de cookies</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer__bottom">
+        <div class="container">
+          <p>© <span id="footerYear"></span> Burger Nick. Todos los derechos reservados.</p>
+        </div>
+      </div>
+    </footer>
+
+    <!-- WhatsApp flotante -->
+    <a
+      href="https://wa.me/5493765130819?text=Hola%20Burger%20Nick%2C%20quiero%20hacer%20una%20consulta."
+      class="wa-float"
+      id="waFloat"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Escribir a Burger Nick por WhatsApp"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path
+          fill="currentColor"
+          d="M20.5 3.5A11.8 11.8 0 0 0 12.05 0C5.5 0 .2 5.3.2 11.85c0 2.1.55 4.15 1.6 5.95L0 24l6.35-1.65a11.8 11.8 0 0 0 5.7 1.45h.05c6.55 0 11.85-5.3 11.85-11.85 0-3.15-1.25-6.15-3.45-8.45zM12.05 21.7h-.05a9.8 9.8 0 0 1-5-1.35l-.35-.2-3.75 1 1-3.65-.25-.4a9.8 9.8 0 0 1-1.5-5.2c0-5.4 4.4-9.8 9.85-9.8 2.65 0 5.1 1.05 6.95 2.9a9.75 9.75 0 0 1 2.9 6.95c0 5.4-4.4 9.75-9.8 9.75zm5.4-7.35c-.3-.15-1.75-.85-2-.95-.25-.1-.45-.15-.65.15-.2.3-.75.95-.9 1.15-.15.2-.3.22-.55.07-.3-.15-1.2-.45-2.3-1.4-.85-.75-1.4-1.7-1.55-2-.15-.3-.02-.45.12-.6.12-.12.3-.3.45-.45.15-.15.2-.25.3-.4.1-.2.05-.35-.02-.5-.08-.15-.65-1.55-.9-2.15-.25-.55-.45-.45-.65-.45h-.55c-.2 0-.5.07-.75.35-.25.3-1 1-1 2.4s1.02 2.8 1.15 3c.15.2 2 3.05 4.85 4.3.7.3 1.25.5 1.7.65.7.22 1.35.2 1.85.12.55-.08 1.75-.72 2-1.4.25-.7.25-1.3.18-1.4-.07-.12-.27-.2-.55-.35z"
+        />
+      </svg>
+    </a>
+
+    <!-- ========== CARRITO ========== -->
+    <div class="cart-backdrop" id="cartBackdrop" data-close-cart aria-hidden="true"></div>
+    <aside
+      class="cart-drawer"
+      id="cartDrawer"
+      aria-hidden="true"
+      aria-labelledby="cartDrawerTitle"
+      role="dialog"
+    >
+      <header class="cart-drawer__head">
+        <div>
+          <p class="cart-drawer__eyebrow">Burger Nick</p>
+          <h2 id="cartDrawerTitle">Tu pedido</h2>
+          <p class="cart-drawer__meta" id="cartMeta">0 productos</p>
+        </div>
+        <button type="button" class="cart-drawer__close" data-close-cart aria-label="Cerrar carrito">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </header>
+      <div class="cart-drawer__body" id="cartItems"></div>
+      <footer class="cart-drawer__foot" id="cartFoot">
+        <div class="cart-drawer__totals">
+          <div class="cart-drawer__row">
+            <span>Subtotal</span>
+            <strong id="cartSubtotal">$0</strong>
+          </div>
+          <p class="cart-drawer__hint" id="cartHint">El envío se calcula al finalizar el pedido.</p>
+        </div>
+        <button type="button" class="btn btn--primary btn--block" id="cartCheckoutBtn" disabled>
+          Ir a pagar
+        </button>
+        <div class="cart-drawer__actions">
+          <button type="button" class="cart-drawer__link" data-close-cart data-go-menu>Seguir comprando</button>
+          <button type="button" class="cart-drawer__link cart-drawer__link--danger" id="cartClearBtn" hidden>
+            Vaciar carrito
+          </button>
+        </div>
+      </footer>
+    </aside>
+
+    <!-- ========== MODAL DE PEDIDO ========== -->
+    <div class="modal" id="orderModal" hidden aria-hidden="true">
+      <div class="modal__backdrop" data-close-modal></div>
+      <div
+        class="modal__dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="orderModalTitle"
+      >
+        <button type="button" class="modal__close" data-close-modal aria-label="Cerrar">
+          ×
+        </button>
+
+        <div class="modal__head">
+          <h2 id="orderModalTitle">Realizar Pedido</h2>
+          <ol class="steps" id="orderSteps" aria-label="Pasos del pedido">
+            <li class="steps__item is-active" data-step-indicator="1">Datos</li>
+            <li class="steps__item" data-step-indicator="2">Pago</li>
+            <li class="steps__item" data-step-indicator="3">Entrega</li>
+            <li class="steps__item" data-step-indicator="4">Resumen</li>
+          </ol>
+        </div>
+
+        <div class="modal__body">
+          <!-- Carrito seleccionado -->
+          <div class="order-product" id="orderProductPreview" hidden></div>
+
+          <!-- PASO 1 -->
+          <form class="order-step" id="step1" data-step="1" novalidate>
+            <h3>Datos personales</h3>
+            <div class="form-grid">
+              <div class="form-row">
+                <label for="oFirstName">Nombre *</label>
+                <input type="text" id="oFirstName" name="firstName" required autocomplete="given-name" />
+                <span class="field-error" data-error-for="oFirstName"></span>
+              </div>
+              <div class="form-row">
+                <label for="oLastName">Apellido *</label>
+                <input type="text" id="oLastName" name="lastName" required autocomplete="family-name" />
+                <span class="field-error" data-error-for="oLastName"></span>
+              </div>
+              <div class="form-row">
+                <label for="oWhatsapp">WhatsApp *</label>
+                <input
+                  type="tel"
+                  id="oWhatsapp"
+                  name="whatsapp"
+                  required
+                  inputmode="numeric"
+                  autocomplete="tel"
+                  placeholder="3758502801"
+                />
+                <span class="field-error" data-error-for="oWhatsapp"></span>
+              </div>
+              <div class="form-row">
+                <label for="oEmail">Email *</label>
+                <input type="email" id="oEmail" name="email" required autocomplete="email" />
+                <span class="field-error" data-error-for="oEmail"></span>
+              </div>
+              <div class="form-row" style="grid-column: 1 / -1">
+                <label for="oNotes">Observaciones</label>
+                <textarea id="oNotes" name="notes" rows="2" placeholder="Sin cebolla, timbre, etc."></textarea>
+              </div>
+            </div>
+          </form>
+
+          <!-- PASO 2 -->
+          <div class="order-step" id="step2" data-step="2" hidden>
+            <h3>Método de pago</h3>
+            <div class="option-list" role="radiogroup" aria-label="Método de pago">
+              <label class="option">
+                <input type="radio" name="payment" value="Mercado Pago" checked />
+                <span>Mercado Pago</span>
+              </label>
+              <label class="option">
+                <input type="radio" name="payment" value="Transferencia" />
+                <span>Transferencia</span>
+              </label>
+              <label class="option">
+                <input type="radio" name="payment" value="Tarjeta" />
+                <span>Tarjeta</span>
+              </label>
+              <label class="option">
+                <input type="radio" name="payment" value="Efectivo" />
+                <span>Efectivo</span>
+              </label>
+            </div>
+
+            <div class="coupon-box" id="couponBox">
+              <label for="oCoupon">¿Tenés un cupón?</label>
+              <div class="coupon-box__row">
+                <input
+                  type="text"
+                  id="oCoupon"
+                  name="coupon"
+                  autocomplete="off"
+                  placeholder="Código de descuento"
+                  maxlength="32"
+                />
+                <button type="button" class="btn btn--ghost" id="btnApplyCoupon">Aplicar</button>
+              </div>
+              <p class="coupon-box__msg" id="couponMsg" aria-live="polite"></p>
+            </div>
+          </div>
+
+          <!-- PASO 3 -->
+          <div class="order-step" id="step3" data-step="3" hidden>
+            <h3>Método de entrega</h3>
+            <div class="option-list" role="radiogroup" aria-label="Método de entrega">
+              <label class="option">
+                <input type="radio" name="delivery" value="pickup" checked />
+                <span>Retirar en el local <em>(envío $0)</em></span>
+              </label>
+              <label class="option">
+                <input type="radio" name="delivery" value="delivery" />
+                <span>Delivery</span>
+              </label>
+            </div>
+
+            <div class="delivery-panel" id="deliveryPanel" hidden>
+              <div class="form-row" style="margin-top:1rem">
+                <label for="oAddress">Dirección / referencias *</label>
+                <input
+                  type="text"
+                  id="oAddress"
+                  name="address"
+                  autocomplete="street-address"
+                  placeholder="Calle, número, barrio..."
+                />
+                <span class="field-error" data-error-for="oAddress"></span>
+              </div>
+              <p class="delivery-hint">
+                Tocá el mapa para marcar tu ubicación. Calculamos distancia y costo en tiempo real.
+              </p>
+              <div id="orderMap" class="map map--order" role="img" aria-label="Mapa para marcar ubicación de delivery"></div>
+              <div class="delivery-meta" id="deliveryMeta">
+                <p>Seleccioná un punto en el mapa.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- PASO 4 / RESUMEN -->
+          <div class="order-step" id="step4" data-step="4" hidden>
+            <h3>Resumen del pedido</h3>
+            <div class="checkout" id="orderSummary"></div>
+          </div>
+
+          <!-- CONFIRMACIÓN -->
+          <div class="order-step" id="stepConfirm" data-step="confirm" hidden>
+            <div class="confirm" id="orderConfirm"></div>
+          </div>
+        </div>
+
+        <div class="modal__foot" id="modalFoot">
+          <button type="button" class="btn btn--ghost" id="btnPrev" hidden>Anterior</button>
+          <button type="button" class="btn btn--primary" id="btnNext">Continuar</button>
+        </div>
+      </div>
+    </div>
+
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <script type="module" src="/src/public/main.js"></script>
+  </body>
+</html>

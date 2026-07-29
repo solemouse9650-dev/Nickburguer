@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Admin | Burger Nick</title>
+    <link rel="icon" type="image/png" href="/burger-nick-logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/admin/styles/admin.css" />
+  </head>
+  <body class="admin-body">
+    <!-- Boot -->
+    <div class="admin-loading" id="bootLoading">
+      <div class="spinner"></div>
+      <p id="bootMessage">Verificando sesión...</p>
+    </div>
+
+    <!-- Login (misma página: evita perder sesión al redirigir en Vercel) -->
+    <div class="login-page" id="loginView" hidden>
+      <div class="login-shell">
+        <div class="login-card">
+          <img src="/burger-nick-logo.png" alt="Burger Nick" class="login-logo" width="180" height="96" />
+          <h1>Panel Administrativo</h1>
+          <p class="login-sub">Ingresá con tu cuenta de administrador</p>
+          <form id="loginForm" novalidate>
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" autocomplete="username" required />
+            <label for="password">Contraseña</label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              autocomplete="current-password"
+              required
+            />
+            <p class="form-error" id="loginError" hidden></p>
+            <p class="login-status" id="loginStatus" aria-live="polite"></p>
+            <button type="submit" class="btn btn-primary btn-block" id="loginBtn">
+              Iniciar sesión
+            </button>
+          </form>
+          <a class="login-back" href="/">← Volver al sitio</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- App -->
+    <div class="admin-app" id="adminApp" hidden>
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar__brand">
+          <img src="/burger-nick-logo.png" alt="" width="96" height="44" />
+          <div>
+            <strong>Burger Nick</strong>
+            <span>Administración</span>
+          </div>
+        </div>
+        <nav class="sidebar__nav" aria-label="Menú admin">
+          <a href="#/dashboard" data-route="dashboard" class="nav-item is-active">Dashboard</a>
+          <a href="#/pedidos" data-route="pedidos" class="nav-item">Pedidos</a>
+          <a href="#/productos" data-route="productos" class="nav-item">Productos</a>
+          <a href="#/categorias" data-route="categorias" class="nav-item">Categorías</a>
+          <a href="#/promociones" data-route="promociones" class="nav-item">Promociones</a>
+          <a href="#/cupones" data-route="cupones" class="nav-item">Cupones</a>
+          <a href="#/clientes" data-route="clientes" class="nav-item">Clientes</a>
+          <a href="#/reportes" data-route="reportes" class="nav-item">Reportes</a>
+          <a href="#/notificaciones" data-route="notificaciones" class="nav-item">
+            Notificaciones
+            <span class="nav-badge" id="notifBadge" hidden>0</span>
+          </a>
+          <a href="#/configuracion" data-route="configuracion" class="nav-item">Configuración</a>
+        </nav>
+        <button type="button" class="btn btn-ghost btn-block" id="logoutBtn">Cerrar sesión</button>
+      </aside>
+
+      <div class="admin-main">
+        <header class="topbar">
+          <button type="button" class="icon-btn" id="menuToggle" aria-label="Menú">☰</button>
+          <h1 id="pageTitle">Dashboard</h1>
+          <div class="topbar__user">
+            <button type="button" class="icon-btn" id="notifBell" aria-label="Notificaciones" title="Notificaciones">
+              🔔
+              <span class="dot-badge" id="bellDot" hidden></span>
+            </button>
+            <span id="adminEmail"></span>
+            <a href="/" class="btn btn-sm btn-ghost" target="_blank" rel="noopener">Ver sitio</a>
+          </div>
+        </header>
+        <main class="content" id="viewRoot"></main>
+      </div>
+    </div>
+
+    <div class="modal-root" id="modalRoot" hidden></div>
+    <script type="module" src="/src/admin/app.js"></script>
+  </body>
+</html>

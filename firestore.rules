@@ -1,0 +1,112 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isBootstrapAdmin() {
+      return isSignedIn()
+        && request.auth.uid == 'cm50EaIxcgdzWhb1XEsuo6PVkzN2';
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow create: if isBootstrapAdmin()
+        && request.auth.uid == userId
+        && request.resource.data.role == 'admin';
+      allow update: if isAdmin()
+        || (
+          isBootstrapAdmin()
+          && request.auth.uid == userId
+          && request.resource.data.role == 'admin'
+        );
+      allow delete: if isAdmin();
+    }
+
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /promotions/{promoId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /coupons/{couponId} {
+      allow read: if true;
+      allow create, delete: if isAdmin();
+      // Admin edita todo; clientes solo pueden sumar 1 uso al aplicar el cupón
+      allow update: if isAdmin() || (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usedCount', 'updatedAt'])
+        && request.resource.data.usedCount is number
+        && request.resource.data.usedCount == resource.data.get('usedCount', 0) + 1
+        && resource.data.get('active', true) == true
+        && (
+          !('maxUses' in resource.data)
+          || resource.data.maxUses == null
+          || request.resource.data.usedCount <= resource.data.maxUses
+        )
+      );
+    }
+
+    match /business_settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /orders/{orderId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() || (
+        request.resource.data.status in ['pendiente', 'nuevo']
+        && request.resource.data.total is number
+        && request.resource.data.total >= 0
+        && request.resource.data.orderNumber is string
+        && request.resource.data.phone is string
+        && request.resource.data.items is list
+      );
+      allow update, delete: if isAdmin();
+    }
+
+    match /customers/{customerId} {
+      allow read: if isAdmin();
+      // Checkout público: crear cliente nuevo al primer pedido
+      allow create: if request.resource.data.phone is string
+        && request.resource.data.phone == customerId
+        && request.resource.data.totalOrders == 1
+        && request.resource.data.totalSpent is number
+        && request.resource.data.totalSpent >= 0;
+      // Checkout público: incrementar pedidos/gasto sin leer el doc antes
+      allow update: if isAdmin() || (
+        request.resource.data.phone == resource.data.phone
+        && request.resource.data.phone == customerId
+        && request.resource.data.totalOrders is number
+        && request.resource.data.totalOrders == resource.data.get('totalOrders', 0) + 1
+        && request.resource.data.totalSpent is number
+        && request.resource.data.totalSpent >= resource.data.get('totalSpent', 0)
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /counters/{counterId} {
+      allow read: if true;
+      allow create: if request.resource.data.value is number
+        && request.resource.data.value >= 0;
+      allow update: if request.resource.data.value is number
+        && request.resource.data.value == resource.data.value + 1;
+      allow delete: if isAdmin();
+    }
+  }
+}

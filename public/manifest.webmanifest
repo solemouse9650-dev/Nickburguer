@@ -1,0 +1,19 @@
+{
+  "name": "Burger Nick",
+  "short_name": "Burger Nick",
+  "description": "Hamburguesas premium, pedidos online y atención por WhatsApp.",
+  "lang": "es-AR",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#050505",
+  "icons": [
+    {
+      "src": "/burger-nick-logo.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

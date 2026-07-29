@@ -1,0 +1,19 @@
+{
+  "name": "burger-nick",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "seed": "node --env-file=.env.local src/seed/seed.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.110.7",
+    "firebase": "^11.6.0"
+  },
+  "devDependencies": {
+    "vite": "^6.2.5"
+  }
+}

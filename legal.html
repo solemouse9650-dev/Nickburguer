@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Información legal de Burger Nick: términos, privacidad y cookies." />
+    <meta name="robots" content="noindex,follow" />
+    <title>Legal | Burger Nick</title>
+    <link rel="icon" type="image/png" href="/burger-nick-logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#contenido">Saltar al contenido</a>
+    <header class="header is-scrolled" id="header">
+      <div class="container header__inner">
+        <a href="/" class="header__brand" aria-label="Volver a Burger Nick">
+          <img src="/burger-nick-logo.png" alt="Burger Nick" class="header__logo" width="124" height="48" />
+          <span class="header__brand-text">
+            <span class="header__name">Burger Nick</span>
+            <span class="header__tag">Since 2024</span>
+          </span>
+        </a>
+        <a href="/" class="btn btn--ghost btn--sm">Volver al sitio</a>
+      </div>
+    </header>
+
+    <main id="contenido" class="section" style="padding-top: calc(var(--header-h) + 2rem)">
+      <div class="container legal-page">
+        <header class="section__head" style="text-align: left; margin-inline: 0">
+          <p class="eyebrow">Burger Nick</p>
+          <h1 class="section__title no-stars">Información legal</h1>
+        </header>
+
+        <nav class="legal-nav" aria-label="Secciones legales">
+          <a href="#terminos">Términos</a>
+          <a href="#privacidad">Privacidad</a>
+          <a href="#cookies">Cookies</a>
+        </nav>
+
+        <article id="terminos" class="legal-block">
+          <h2>Términos y condiciones</h2>
+          <p>
+            Al realizar un pedido en Burger Nick aceptás estos términos. Los precios publicados
+            corresponden al momento de la compra y pueden modificarse sin previo aviso.
+          </p>
+          <p>
+            Los pedidos están sujetas a disponibilidad de stock y zona de delivery. El tiempo
+            estimado de preparación y entrega es orientativo. Para retiros en el local, el cliente
+            debe presentarse en el horario indicado.
+          </p>
+          <p>
+            Los pagos por transferencia, Mercado Pago o tarjeta se confirman al recibir el
+            comprobante por WhatsApp. En efectivo, el pago se realiza al retirar o al recibir el pedido.
+          </p>
+          <p>
+            Burger Nick puede cancelar un pedido ante datos incompletos, zona fuera de cobertura,
+            o falta de confirmación de pago en un plazo razonable.
+          </p>
+        </article>
+
+        <article id="privacidad" class="legal-block">
+          <h2>Política de privacidad</h2>
+          <p>
+            Recopilamos nombre, apellido, WhatsApp, email y dirección únicamente para procesar
+            pedidos, contactarte y mejorar el servicio.
+          </p>
+          <p>
+            No vendemos tus datos a terceros. La información se almacena de forma segura mediante
+            servicios de Firebase y se utiliza solo con fines operativos del negocio.
+          </p>
+          <p>
+            Podés solicitar la actualización o eliminación de tus datos escribiendo al WhatsApp
+            oficial de Burger Nick.
+          </p>
+        </article>
+
+        <article id="cookies" class="legal-block">
+          <h2>Política de cookies</h2>
+          <p>
+            El sitio puede utilizar almacenamiento local del navegador para mantener la sesión del
+            panel administrativo y contadores técnicos necesarios para el funcionamiento del pedido.
+          </p>
+          <p>
+            No utilizamos cookies publicitarias de terceros. Al continuar navegando aceptás el uso
+            de estas tecnologías esenciales.
+          </p>
+        </article>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer__bottom">
+        <div class="container">
+          <p>© <span id="y"></span> Burger Nick. Todos los derechos reservados.</p>
+        </div>
+      </div>
+    </footer>
+    <script>
+      document.getElementById("y").textContent = new Date().getFullYear();
+    </script>
+  </body>
+</html>
