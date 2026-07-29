@@ -1,6 +1,7 @@
 import { listenOrders } from "../../services/orders.js";
 import { listenProducts } from "../../services/products.js";
 import { listenCustomers } from "../../services/customers.js";
+import { listenSettings } from "../../services/settings.js";
 import {
   avgTicket,
   categorySalesMap,
@@ -33,6 +34,7 @@ let orders = [];
 let products = [];
 let customers = [];
 let range = "month";
+let recurrentMinOrders = 2;
 
 export function mountReports(root) {
   unmountReports();
@@ -124,6 +126,12 @@ export function mountReports(root) {
   );
   unsubs.push(listenProducts((d) => { products = d; paint(root); }));
   unsubs.push(listenCustomers((d) => { customers = d; paint(root); }));
+  unsubs.push(
+    listenSettings((settings) => {
+      recurrentMinOrders = Math.max(1, Number(settings.customers?.recurrentMinOrders || 2));
+      paint(root);
+    })
+  );
 }
 
 export function unmountReports() {
@@ -132,6 +140,7 @@ export function unmountReports() {
   orders = [];
   products = [];
   customers = [];
+  recurrentMinOrders = 2;
 }
 
 function rangeBounds() {
@@ -232,7 +241,7 @@ function paint(root) {
   }
 
   const recurring = [...customers]
-    .filter((c) => Number(c.totalOrders || 0) >= 2)
+    .filter((c) => Number(c.totalOrders || 0) >= recurrentMinOrders)
     .sort((a, b) => Number(b.totalOrders || 0) - Number(a.totalOrders || 0))
     .slice(0, 15);
   const rec = root.querySelector("#reportRecurring");

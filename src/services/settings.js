@@ -32,7 +32,7 @@ export const DEFAULT_SETTINGS = {
   },
   social: {
     instagram: "https://www.instagram.com/burger.nick_/",
-    facebook: "https://www.threads.com/@burger.nick_?xmt=AQG07ywm8WoDJn94yh7xR0YzUhZHOT_LHABVxYKyFgBzrzw",
+    threads: "https://www.threads.com/@burger.nick_?xmt=AQG07ywm8WoDJn94yh7xR0YzUhZHOT_LHABVxYKyFgBzrzw",
     tiktok: "",
     twitter: "",
     youtube: "",
@@ -139,6 +139,9 @@ function mergeSettings(defaults, incoming) {
       out[key] = incoming[key];
     }
   });
+  if (!incoming?.social?.threads && incoming?.social?.facebook) {
+    out.social.threads = incoming.social.facebook;
+  }
   return out;
 }
 

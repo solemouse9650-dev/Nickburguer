@@ -16,6 +16,28 @@ service cloud.firestore {
         && request.auth.uid == 'cm50EaIxcgdzWhb1XEsuo6PVkzN2';
     }
 
+    function validShortString(value, maxLength) {
+      return value is string && value.size() > 0 && value.size() <= maxLength;
+    }
+
+    function counterMatchesCreatedOrder() {
+      let orderId = request.resource.data.get('lastOrderId', '');
+      let orderNumber = request.resource.data.get('lastOrderNumber', '');
+      return validShortString(orderId, 128)
+        && validShortString(orderNumber, 40)
+        && existsAfter(/databases/$(database)/documents/orders/$(orderId))
+        && getAfter(/databases/$(database)/documents/orders/$(orderId)).data.id == orderId
+        && getAfter(/databases/$(database)/documents/orders/$(orderId)).data.orderNumber == orderNumber;
+    }
+
+    function orderMatchesCounter() {
+      return existsAfter(/databases/$(database)/documents/counters/orders)
+        && getAfter(/databases/$(database)/documents/counters/orders).data.lastOrderId
+          == request.resource.data.id
+        && getAfter(/databases/$(database)/documents/counters/orders).data.lastOrderNumber
+          == request.resource.data.orderNumber;
+    }
+
     match /users/{userId} {
       allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow create: if isBootstrapAdmin()
@@ -73,9 +95,20 @@ service cloud.firestore {
         request.resource.data.status in ['pendiente', 'nuevo']
         && request.resource.data.total is number
         && request.resource.data.total >= 0
-        && request.resource.data.orderNumber is string
+        && request.resource.data.total <= 100000000
+        && validShortString(request.resource.data.orderNumber, 40)
         && request.resource.data.phone is string
+        && request.resource.data.phone.matches('^[0-9]{8,15}$')
         && request.resource.data.items is list
+        && request.resource.data.items.size() > 0
+        && request.resource.data.items.size() <= 50
+        && validShortString(request.resource.data.get('firstName', ''), 80)
+        && validShortString(request.resource.data.get('lastName', ''), 80)
+        && request.resource.data.get('email', '') is string
+        && request.resource.data.get('email', '').size() <= 160
+        && request.resource.data.get('notes', '') is string
+        && request.resource.data.get('notes', '').size() <= 1000
+        && orderMatchesCounter()
       );
       allow update, delete: if isAdmin();
     }
@@ -85,9 +118,16 @@ service cloud.firestore {
       // Checkout público: crear cliente nuevo al primer pedido
       allow create: if request.resource.data.phone is string
         && request.resource.data.phone == customerId
+        && request.resource.data.phone.matches('^[0-9]{8,15}$')
         && request.resource.data.totalOrders == 1
         && request.resource.data.totalSpent is number
-        && request.resource.data.totalSpent >= 0;
+        && request.resource.data.totalSpent >= 0
+        && request.resource.data.totalSpent <= 100000000
+        && request.resource.data.keys().hasOnly([
+          'id', 'firstName', 'lastName', 'email', 'address', 'phone', 'status',
+          'updatedAt', 'lastPurchaseAt', 'totalOrders', 'totalSpent',
+          'firstPurchaseAt', 'registeredAt'
+        ]);
       // Checkout público: incrementar pedidos/gasto sin leer el doc antes
       allow update: if isAdmin() || (
         request.resource.data.phone == resource.data.phone
@@ -96,6 +136,11 @@ service cloud.firestore {
         && request.resource.data.totalOrders == resource.data.get('totalOrders', 0) + 1
         && request.resource.data.totalSpent is number
         && request.resource.data.totalSpent >= resource.data.get('totalSpent', 0)
+        && request.resource.data.totalSpent - resource.data.get('totalSpent', 0) <= 100000000
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'firstName', 'lastName', 'email', 'address', 'phone', 'status',
+          'updatedAt', 'lastPurchaseAt', 'totalOrders', 'totalSpent'
+        ])
       );
       allow delete: if isAdmin();
     }
@@ -103,9 +148,16 @@ service cloud.firestore {
     match /counters/{counterId} {
       allow read: if true;
       allow create: if request.resource.data.value is number
-        && request.resource.data.value >= 0;
+        && request.resource.data.value >= 0
+        && request.resource.data.value <= 10000000
+        && counterMatchesCreatedOrder();
       allow update: if request.resource.data.value is number
-        && request.resource.data.value == resource.data.value + 1;
+        && request.resource.data.value == resource.data.value + 1
+        && request.resource.data.value <= 10000000
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'value', 'lastOrderId', 'lastOrderNumber', 'updatedAt'
+        ])
+        && counterMatchesCreatedOrder();
       allow delete: if isAdmin();
     }
   }

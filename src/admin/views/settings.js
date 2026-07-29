@@ -1,5 +1,6 @@
 import { DEFAULT_SETTINGS, listenSettings, saveSettings } from "../../services/settings.js";
-import { uploadImage } from "../../services/storage.js";
+import { runSystemDiagnostics } from "../../services/diagnostics.js";
+import { deleteImageByPath, uploadImage } from "../../services/storage.js";
 import { escapeHtml } from "../../utils/format.js";
 import { showToast } from "../../utils/toast.js";
 
@@ -35,6 +36,7 @@ export function mountSettings(root) {
         <button type="button" class="tab" data-tab="about">Nosotros</button>
         <button type="button" class="tab" data-tab="clientes">Clientes VIP</button>
         <button type="button" class="tab" data-tab="branding">Visual</button>
+        <button type="button" class="tab" data-tab="sistema">Estado del sistema</button>
       </div>
       <form id="settingsForm"></form>
     </section>
@@ -135,7 +137,7 @@ function renderForm(root) {
     form.innerHTML = `
       <div class="form-grid">
         <div class="field"><label>Instagram</label><input name="social.instagram" value="${escapeHtml(s.instagram || "")}" /></div>
-        <div class="field"><label>Threads</label><input name="social.facebook" value="${escapeHtml(s.facebook || "")}" /></div>
+        <div class="field"><label>Threads</label><input name="social.threads" value="${escapeHtml(s.threads || s.facebook || "")}" /></div>
         <div class="field"><label>TikTok</label><input name="social.tiktok" value="${escapeHtml(s.tiktok || "")}" /></div>
         <div class="field"><label>X (Twitter)</label><input name="social.twitter" value="${escapeHtml(s.twitter || "")}" /></div>
         <div class="field full"><label>YouTube</label><input name="social.youtube" value="${escapeHtml(s.youtube || "")}" /></div>
@@ -203,8 +205,8 @@ function renderForm(root) {
   } else if (tab === "branding") {
     form.innerHTML = `
       <div class="form-grid">
-        <div class="field"><label>Color primario</label><input type="color" name="branding.primaryColor" value="${br.primaryColor || "#f5c518"}" /></div>
-        <div class="field"><label>Color secundario</label><input type="color" name="branding.secondaryColor" value="${br.secondaryColor || "#8b1e1e"}" /></div>
+        <div class="field"><label>Color primario</label><input type="color" name="branding.primaryColor" value="${br.primaryColor || "#d8c6a5"}" /></div>
+        <div class="field"><label>Color secundario</label><input type="color" name="branding.secondaryColor" value="${br.secondaryColor || "#f2e8d8"}" /></div>
         <div class="field full"><label>URL Logo</label><input name="branding.logoUrl" value="${escapeHtml(br.logoUrl || "")}" /></div>
         <div class="field full"><label>URL Favicon</label><input name="branding.faviconUrl" value="${escapeHtml(br.faviconUrl || "")}" /></div>
         <div class="field full"><label>URL Hero</label><input name="branding.heroUrl" value="${escapeHtml(br.heroUrl || "")}" /></div>
@@ -219,6 +221,21 @@ function renderForm(root) {
         </div>
       </div>
       ${saveBar()}
+    `;
+  } else if (tab === "sistema") {
+    form.innerHTML = `
+      <div class="system-health">
+        <div class="panel__head">
+          <div>
+            <h3>Diagnóstico de producción</h3>
+            <p class="muted">Comprueba sesión, Firestore y Firebase Storage sin modificar datos.</p>
+          </div>
+          <button type="button" class="btn btn-primary" id="runDiagnostics">Ejecutar diagnóstico</button>
+        </div>
+        <div class="system-health__grid" id="diagnosticsResult">
+          <div class="skeleton"></div>
+        </div>
+      </div>
     `;
   }
 
@@ -240,10 +257,15 @@ function renderForm(root) {
     try {
       const up = await uploadImage(file, "branding");
       if (!settings.branding) settings.branding = {};
+      const previousPath = settings.branding.logoPath;
       settings.branding.logoUrl = up.url;
+      settings.branding.logoPath = up.path;
       settings.branding.faviconUrl = settings.branding.faviconUrl || up.url;
       formDirty = false;
       await saveSettings(settings);
+      if (previousPath) {
+        deleteImageByPath(previousPath).catch(() => {});
+      }
       showToast("Logo subido y guardado", "success");
       renderForm(root);
     } catch (err) {
@@ -257,15 +279,25 @@ function renderForm(root) {
     try {
       const up = await uploadImage(file, "branding");
       if (!settings.branding) settings.branding = {};
+      const previousPath = settings.branding.heroPath;
       settings.branding.heroUrl = up.url;
+      settings.branding.heroPath = up.path;
       formDirty = false;
       await saveSettings(settings);
+      if (previousPath) {
+        deleteImageByPath(previousPath).catch(() => {});
+      }
       showToast("Hero subido y guardado", "success");
       renderForm(root);
     } catch (err) {
       showToast(err.message || "Error al subir", "error");
     }
   });
+
+  form.querySelector("#runDiagnostics")?.addEventListener("click", () => {
+    executeDiagnostics(form);
+  });
+  if (tab === "sistema") executeDiagnostics(form);
 }
 
 function saveBar() {
@@ -332,6 +364,7 @@ async function persist(form) {
   }
 
   try {
+    validateSettings(next);
     await saveSettings(next);
     settings = next;
     formDirty = false;
@@ -339,6 +372,77 @@ async function persist(form) {
   } catch (err) {
     showToast(err.message || "No se pudo guardar", "error");
   }
+}
+
+function validateSettings(next) {
+  const businessName = String(next.business?.name || "").trim();
+  if (businessName.length < 2) throw new Error("El nombre del negocio es obligatorio.");
+  next.business.name = businessName;
+
+  const primary = String(next.contact?.whatsappPrimary || "").replace(/\D/g, "");
+  const secondary = String(next.contact?.whatsappSecondary || "").replace(/\D/g, "");
+  if (!/^\d{8,15}$/.test(primary)) {
+    throw new Error("El WhatsApp principal debe tener entre 8 y 15 dígitos.");
+  }
+  if (secondary && !/^\d{8,15}$/.test(secondary)) {
+    throw new Error("El WhatsApp secundario debe tener entre 8 y 15 dígitos.");
+  }
+  next.contact.whatsappPrimary = primary;
+  next.contact.whatsappSecondary = secondary;
+  next.contact.whatsapp = primary;
+
+  const lat = Number(next.store?.lat);
+  const lng = Number(next.store?.lng);
+  if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
+    throw new Error("La latitud del local no es válida.");
+  }
+  if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
+    throw new Error("La longitud del local no es válida.");
+  }
+
+  const urlFields = [
+    ["Google Maps", next.store?.mapsUrl],
+    ["Instagram", next.social?.instagram],
+    ["Threads", next.social?.threads],
+    ["TikTok", next.social?.tiktok],
+    ["X", next.social?.twitter],
+    ["YouTube", next.social?.youtube],
+    ["Logo", next.branding?.logoUrl],
+    ["Favicon", next.branding?.faviconUrl],
+    ["Hero", next.branding?.heroUrl],
+    ["Portada", next.branding?.coverUrl],
+  ];
+  urlFields.forEach(([label, value]) => {
+    const text = String(value || "").trim();
+    if (!text || text.startsWith("/")) return;
+    try {
+      const parsed = new URL(text);
+      if (parsed.protocol !== "https:") throw new Error();
+    } catch {
+      throw new Error(`${label}: usá una URL HTTPS válida.`);
+    }
+  });
+
+  const shipping = next.shipping || {};
+  ["baseCost", "costPerKm", "freeShippingMin", "minOrderAmount"].forEach((field) => {
+    if (Number(shipping[field]) < 0) throw new Error("Los importes de envío no pueden ser negativos.");
+  });
+  if (Number(shipping.maxRadiusKm) <= 0) {
+    throw new Error("El radio máximo de delivery debe ser mayor a cero.");
+  }
+  if (Number(shipping.estimatedMinutes) <= 0) {
+    throw new Error("El tiempo estimado debe ser mayor a cero.");
+  }
+
+  Object.entries(next.hours || {}).forEach(([day, hours]) => {
+    if (!hours.closed && (!hours.open || !hours.close)) {
+      throw new Error(`Completá apertura y cierre para ${day}.`);
+    }
+  });
+
+  const cbu = String(next.payment?.cbu || "").replace(/\D/g, "");
+  if (cbu && cbu.length !== 22) throw new Error("El CBU/CVU debe tener 22 dígitos.");
+  next.payment.cbu = cbu;
 }
 
 function setPath(obj, path, value) {
@@ -353,4 +457,41 @@ function setPath(obj, path, value) {
   if (value === "true") cur[last] = true;
   else if (value === "false") cur[last] = false;
   else cur[last] = value;
+}
+
+async function executeDiagnostics(form) {
+  const root = form.querySelector("#diagnosticsResult");
+  const button = form.querySelector("#runDiagnostics");
+  if (!root) return;
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Comprobando...";
+  }
+  root.innerHTML = '<div class="skeleton"></div>';
+  try {
+    const result = await runSystemDiagnostics();
+    root.innerHTML = result.checks
+      .map(
+        (check) => `
+          <article class="system-health__item ${check.ok ? "is-ok" : "is-error"}">
+            <span class="system-health__dot" aria-hidden="true"></span>
+            <div>
+              <strong>${escapeHtml(check.label)}</strong>
+              <p>${escapeHtml(check.detail)}</p>
+            </div>
+          </article>`
+      )
+      .join("");
+    showToast(
+      result.ok ? "Todos los servicios están operativos" : "Hay servicios que requieren atención",
+      result.ok ? "success" : "error"
+    );
+  } catch (error) {
+    root.innerHTML = `<div class="empty">${escapeHtml(error.message || "No se pudo ejecutar el diagnóstico.")}</div>`;
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = "Ejecutar diagnóstico";
+    }
+  }
 }

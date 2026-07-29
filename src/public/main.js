@@ -196,9 +196,10 @@ function applySettings(settings) {
   const instagramUrl = /loliburguer/i.test(social.instagram || "")
     ? "https://www.instagram.com/burger.nick_/"
     : social.instagram;
-  const threadsUrl = /loliburguer|facebook/i.test(social.facebook || "")
+  const rawThreadsUrl = social.threads || social.facebook || "";
+  const threadsUrl = /loliburguer|facebook/i.test(rawThreadsUrl)
     ? "https://www.threads.com/@burger.nick_?xmt=AQG07ywm8WoDJn94yh7xR0YzUhZHOT_LHABVxYKyFgBzrzw"
-    : social.facebook;
+    : rawThreadsUrl;
   wireSocial("contactIg", instagramUrl);
   wireSocial("contactFb", threadsUrl);
   wireSocial("footerIg", instagramUrl);

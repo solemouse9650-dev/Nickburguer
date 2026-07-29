@@ -11,7 +11,7 @@ service firebase.storage {
     }
 
     function isValidImage() {
-      return request.resource.size < 5 * 1024 * 1024
+      return request.resource.size < 8 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
     }
 
@@ -28,6 +28,12 @@ service firebase.storage {
     }
 
     match /branding/{allPaths=**} {
+      allow read: if true;
+      allow create, update: if isAdmin() && isValidImage();
+      allow delete: if isAdmin();
+    }
+
+    match /categories/{allPaths=**} {
       allow read: if true;
       allow create, update: if isAdmin() && isValidImage();
       allow delete: if isAdmin();

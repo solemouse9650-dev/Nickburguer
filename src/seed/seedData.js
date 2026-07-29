@@ -1,7 +1,18 @@
 /** Datos ficticios de demostración para mostrar la web completa. */
 
 const IMG = "/burger-nick-logo.png";
-
+const DEMO_IMAGES = {
+  burgers:
+    "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=1200&q=82",
+  combos:
+    "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=1200&q=82",
+  sides:
+    "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=1200&q=82",
+  drinks:
+    "https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=1200&q=82",
+  desserts:
+    "https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?auto=format&fit=crop&w=1200&q=82",
+};
 export const SEED_PRODUCTS = [
   // Hamburguesas
   {
@@ -406,6 +417,10 @@ export const SEED_PRODUCTS = [
   },
 ];
 
+SEED_PRODUCTS.forEach((product) => {
+  product.imageUrl = DEMO_IMAGES[product.category] || IMG;
+});
+
 export const SEED_PROMOS = [
   {
     id: "combo-pareja",
@@ -462,7 +477,7 @@ export const SEED_PROMOS = [
   {
     id: "envio-promo",
     title: "Envío bonificado",
-    description: "Envío gratis en pedidos mayores a $25.000 dentro de Apóstoles.",
+    description: "Usá el cupón ENVIOGRATIS en pedidos desde $15.000 dentro de Apóstoles.",
     imageUrl: IMG,
     badge: "Envío gratis",
     cta: "Armá tu pedido",
@@ -474,6 +489,10 @@ export const SEED_PROMOS = [
   },
 ];
 
+SEED_PROMOS.forEach((promotion) => {
+  promotion.imageUrl = DEMO_IMAGES.combos;
+});
+
 export const SEED_COUPONS = [
   {
     id: "coupon-nick10",
@@ -482,7 +501,7 @@ export const SEED_COUPONS = [
     value: 10,
     active: true,
     maxUses: 200,
-    usedCount: 18,
+    usedCount: 3,
     minOrderAmount: 10000,
     maxDiscount: 3000,
     freeShipping: false,
@@ -496,7 +515,7 @@ export const SEED_COUPONS = [
     value: 2000,
     active: true,
     maxUses: 100,
-    usedCount: 42,
+    usedCount: 1,
     minOrderAmount: 8000,
     maxDiscount: null,
     freeShipping: false,
@@ -510,7 +529,7 @@ export const SEED_COUPONS = [
     value: 0,
     active: true,
     maxUses: 50,
-    usedCount: 7,
+    usedCount: 2,
     minOrderAmount: 15000,
     maxDiscount: null,
     freeShipping: true,
@@ -518,110 +537,110 @@ export const SEED_COUPONS = [
     description: "Envío gratis en delivery",
   },
   {
-    id: "coupon-scaloneta",
-    code: "SCALONETA",
+    id: "coupon-signature15",
+    code: "SIGNATURE15",
     type: "percent",
     value: 15,
     active: true,
     maxUses: 80,
-    usedCount: 11,
+    usedCount: 0,
     minOrderAmount: 12000,
     maxDiscount: 4000,
     freeShipping: false,
     applyToShipping: false,
-    description: "15% OFF estilo Signature",
+    description: "15% OFF en hamburguesas Signature",
   },
 ];
 
 /** Clientes demo (id = teléfono normalizado). */
 export const SEED_CUSTOMERS = [
   {
-    id: "3758123456",
-    phone: "3758123456",
+    id: "3760000001",
+    phone: "3760000001",
     firstName: "María",
     lastName: "Gómez",
-    email: "maria.gomez@email.com",
+    email: "maria.gomez@example.com",
     address: "San Martín 245, Apóstoles",
     status: "Activo",
-    totalOrders: 6,
-    totalSpent: 78400,
+    totalOrders: 2,
+    totalSpent: 46000,
   },
   {
-    id: "3758654321",
-    phone: "3758654321",
+    id: "3760000002",
+    phone: "3760000002",
     firstName: "Lucas",
     lastName: "Fernández",
-    email: "lucas.f@email.com",
+    email: "lucas.fernandez@example.com",
     address: "Belgrano 1180, Apóstoles",
     status: "Activo",
-    totalOrders: 4,
-    totalSpent: 51200,
+    totalOrders: 2,
+    totalSpent: 56400,
   },
   {
-    id: "3758987654",
-    phone: "3758987654",
+    id: "3760000003",
+    phone: "3760000003",
     firstName: "Valentina",
     lastName: "Ruiz",
-    email: "vale.ruiz@email.com",
+    email: "valentina.ruiz@example.com",
     address: "Juan José Lanusse 320, Apóstoles",
     status: "Activo",
-    totalOrders: 9,
-    totalSpent: 128500,
+    totalOrders: 2,
+    totalSpent: 66700,
   },
   {
-    id: "3758111222",
-    phone: "3758111222",
+    id: "3760000004",
+    phone: "3760000004",
     firstName: "Diego",
     lastName: "Acosta",
-    email: "diego.acosta@email.com",
+    email: "diego.acosta@example.com",
     address: "Mitre 88, Apóstoles",
     status: "Activo",
-    totalOrders: 2,
-    totalSpent: 24600,
+    totalOrders: 1,
+    totalSpent: 24240,
   },
   {
-    id: "3758333444",
-    phone: "3758333444",
+    id: "3760000005",
+    phone: "3760000005",
     firstName: "Camila",
     lastName: "Benítez",
-    email: "cami.benitez@email.com",
+    email: "camila.benitez@example.com",
     address: "Retiro en el local",
     status: "Activo",
-    totalOrders: 3,
-    totalSpent: 35700,
+    totalOrders: 2,
+    totalSpent: 31900,
   },
   {
-    id: "3758555666",
-    phone: "3758555666",
+    id: "3760000006",
+    phone: "3760000006",
     firstName: "Tomás",
     lastName: "Pereyra",
-    email: "tomas.p@email.com",
+    email: "tomas.pereyra@example.com",
     address: "Av. 9 de Julio 540, Apóstoles",
     status: "Activo",
-    totalOrders: 5,
-    totalSpent: 67100,
+    totalOrders: 2,
+    totalSpent: 28470,
   },
   {
-    id: "3758777888",
-    phone: "3758777888",
+    id: "3760000007",
+    phone: "3760000007",
     firstName: "Sofía",
     lastName: "Martínez",
-    email: "sofia.m@email.com",
+    email: "sofia.martinez@example.com",
     address: "Sarmiento 712, Apóstoles",
     status: "Activo",
     totalOrders: 1,
-    totalSpent: 11800,
+    totalSpent: 14800,
   },
   {
-    id: "3758999000",
-    phone: "3758999000",
+    id: "3760000008",
+    phone: "3760000008",
     firstName: "Agustín",
     lastName: "López",
-    email: "agus.lopez@email.com",
+    email: "agustin.lopez@example.com",
     address: "España 156, Apóstoles",
     status: "Activo",
-    totalOrders: 7,
-    totalSpent: 94500,
+    totalOrders: 2,
+    totalSpent: 46340,
   },
 ];
 
@@ -635,8 +654,8 @@ export const SEED_ORDERS = [
     orderNumber: "BN-2026-000001",
     firstName: "María",
     lastName: "Gómez",
-    phone: "3758123456",
-    email: "maria.gomez@email.com",
+    phone: "3760000001",
+    email: "maria.gomez@example.com",
     address: "San Martín 245, Apóstoles",
     notes: "Sin cebolla en la clásica",
     paymentMethod: "Mercado Pago",
@@ -660,8 +679,8 @@ export const SEED_ORDERS = [
     orderNumber: "BN-2026-000002",
     firstName: "Lucas",
     lastName: "Fernández",
-    phone: "3758654321",
-    email: "lucas.f@email.com",
+    phone: "3760000002",
+    email: "lucas.fernandez@example.com",
     address: "Belgrano 1180, Apóstoles",
     notes: "",
     paymentMethod: "Transferencia",
@@ -685,8 +704,8 @@ export const SEED_ORDERS = [
     orderNumber: "BN-2026-000003",
     firstName: "Valentina",
     lastName: "Ruiz",
-    phone: "3758987654",
-    email: "vale.ruiz@email.com",
+    phone: "3760000003",
+    email: "valentina.ruiz@example.com",
     address: "Juan José Lanusse 320, Apóstoles",
     notes: "Tocar timbre 2B",
     paymentMethod: "Mercado Pago",
@@ -709,8 +728,8 @@ export const SEED_ORDERS = [
     orderNumber: "BN-2026-000004",
     firstName: "Diego",
     lastName: "Acosta",
-    phone: "3758111222",
-    email: "diego.acosta@email.com",
+    phone: "3760000004",
+    email: "diego.acosta@example.com",
     address: "Mitre 88, Apóstoles",
     notes: "",
     paymentMethod: "Efectivo",
@@ -734,8 +753,8 @@ export const SEED_ORDERS = [
     orderNumber: "BN-2026-000005",
     firstName: "Camila",
     lastName: "Benítez",
-    phone: "3758333444",
-    email: "cami.benitez@email.com",
+    phone: "3760000005",
+    email: "camila.benitez@example.com",
     address: "Retiro en el local",
     notes: "Paso a las 21:30",
     paymentMethod: "Tarjeta",
@@ -758,8 +777,8 @@ export const SEED_ORDERS = [
     orderNumber: "BN-2026-000006",
     firstName: "Tomás",
     lastName: "Pereyra",
-    phone: "3758555666",
-    email: "tomas.p@email.com",
+    phone: "3760000006",
+    email: "tomas.pereyra@example.com",
     address: "Av. 9 de Julio 540, Apóstoles",
     notes: "",
     paymentMethod: "Mercado Pago",
@@ -782,8 +801,8 @@ export const SEED_ORDERS = [
     orderNumber: "BN-2026-000007",
     firstName: "Sofía",
     lastName: "Martínez",
-    phone: "3758777888",
-    email: "sofia.m@email.com",
+    phone: "3760000007",
+    email: "sofia.martinez@example.com",
     address: "Sarmiento 712, Apóstoles",
     notes: "",
     paymentMethod: "Transferencia",
@@ -805,8 +824,8 @@ export const SEED_ORDERS = [
     orderNumber: "BN-2026-000008",
     firstName: "Agustín",
     lastName: "López",
-    phone: "3758999000",
-    email: "agus.lopez@email.com",
+    phone: "3760000008",
+    email: "agustin.lopez@example.com",
     address: "España 156, Apóstoles",
     notes: "Dejar en portería",
     paymentMethod: "Mercado Pago",
@@ -830,8 +849,8 @@ export const SEED_ORDERS = [
     orderNumber: "BN-2026-000009",
     firstName: "Valentina",
     lastName: "Ruiz",
-    phone: "3758987654",
-    email: "vale.ruiz@email.com",
+    phone: "3760000003",
+    email: "valentina.ruiz@example.com",
     address: "Juan José Lanusse 320, Apóstoles",
     notes: "",
     paymentMethod: "Mercado Pago",
@@ -856,8 +875,8 @@ export const SEED_ORDERS = [
     orderNumber: "BN-2026-000010",
     firstName: "María",
     lastName: "Gómez",
-    phone: "3758123456",
-    email: "maria.gomez@email.com",
+    phone: "3760000001",
+    email: "maria.gomez@example.com",
     address: "Retiro en el local",
     notes: "Sin salsa picante",
     paymentMethod: "Efectivo",
@@ -880,8 +899,8 @@ export const SEED_ORDERS = [
     orderNumber: "BN-2026-000011",
     firstName: "Lucas",
     lastName: "Fernández",
-    phone: "3758654321",
-    email: "lucas.f@email.com",
+    phone: "3760000002",
+    email: "lucas.fernandez@example.com",
     address: "Belgrano 1180, Apóstoles",
     notes: "Llamar al llegar",
     paymentMethod: "Transferencia",
@@ -906,8 +925,8 @@ export const SEED_ORDERS = [
     orderNumber: "BN-2026-000012",
     firstName: "Tomás",
     lastName: "Pereyra",
-    phone: "3758555666",
-    email: "tomas.p@email.com",
+    phone: "3760000006",
+    email: "tomas.pereyra@example.com",
     address: "Av. 9 de Julio 540, Apóstoles",
     notes: "Extra cheddar si se puede",
     paymentMethod: "Mercado Pago",
@@ -933,8 +952,8 @@ export const SEED_ORDERS = [
     orderNumber: "BN-2026-000013",
     firstName: "Agustín",
     lastName: "López",
-    phone: "3758999000",
-    email: "agus.lopez@email.com",
+    phone: "3760000008",
+    email: "agustin.lopez@example.com",
     address: "España 156, Apóstoles",
     notes: "",
     paymentMethod: "Mercado Pago",
@@ -942,23 +961,23 @@ export const SEED_ORDERS = [
     status: "pendiente",
     hoursAgo: 1,
     items: [
-      { productId: "combo-familiar", name: "Combo Familiar promo", quantity: 1, unitPrice: 34900, category: "combos" },
+      { productId: "combo-doble", name: "Combo Doble", quantity: 1, unitPrice: 14900, category: "combos" },
     ],
-    subtotal: 34900,
+    subtotal: 14900,
     deliveryCost: 0,
     discount: 0,
-    total: 34900,
+    total: 14900,
     couponCode: "ENVIOGRATIS",
     distanceKm: 1.8,
-    productName: "Combo Familiar",
+    productName: "Combo Doble",
   },
   {
     id: "demo-order-14",
     orderNumber: "BN-2026-000014",
     firstName: "Camila",
     lastName: "Benítez",
-    phone: "3758333444",
-    email: "cami.benitez@email.com",
+    phone: "3760000005",
+    email: "camila.benitez@example.com",
     address: "Retiro en el local",
     notes: "",
     paymentMethod: "Efectivo",
@@ -979,6 +998,14 @@ export const SEED_ORDERS = [
   },
 ];
 
+SEED_CUSTOMERS.forEach((customer) => {
+  const customerOrders = SEED_ORDERS.filter((order) => order.phone === customer.phone);
+  customer.totalOrders = customerOrders.length;
+  customer.totalSpent = customerOrders
+    .filter((order) => order.status !== "cancelado")
+    .reduce((sum, order) => sum + Number(order.total || 0), 0);
+});
+
 export const DEMO_SETTINGS_OVERLAY = {
   payment: {
     alias: "",
@@ -993,6 +1020,12 @@ export const DEMO_SETTINGS_OVERLAY = {
     email: "",
     phoneMobile: "3765130819",
   },
+  shipping: {
+    zoneCosts: [
+      { maxKm: 3.5, cost: 3000 },
+      { maxKm: 5, cost: 4500 },
+    ],
+  },
   business: {
     name: "Burger Nick",
     slogan: "Since 2024",
@@ -1004,6 +1037,3 @@ export const DEMO_SETTINGS_OVERLAY = {
     postalCode: "3350",
   },
 };
-
-export const ADMIN_UID = "cm50EaIxcgdzWhb1XEsuo6PVkzN2";
-export const ADMIN_EMAIL = "solemouse9650@gmail.com";

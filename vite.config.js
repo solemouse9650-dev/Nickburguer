@@ -12,7 +12,6 @@ export default defineConfig({
         main: resolve(__dirname, "index.html"),
         legal: resolve(__dirname, "legal.html"),
         admin: resolve(__dirname, "admin/index.html"),
-        dashboard: resolve(__dirname, "admin/dashboard.html"),
       },
     },
   },

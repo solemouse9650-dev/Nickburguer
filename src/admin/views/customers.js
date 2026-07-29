@@ -242,7 +242,7 @@ function openProfile(root, customer) {
         <div class="field full"><label>Dirección</label><input id="editAddress" value="${escapeHtml(customer.address || "")}" /></div>
         <div class="field"><label>Registro</label><div>${formatDate(customer.registeredAt)}</div></div>
         <div class="field">
-          <label>Estado</label>
+          <label>Estado CRM (no bloquea pedidos)</label>
           <select id="customerStatus">
             <option value="Activo" ${customer.status === "Activo" ? "selected" : ""}>Activo</option>
             <option value="Inactivo" ${customer.status === "Inactivo" ? "selected" : ""}>Inactivo</option>

@@ -1,4 +1,13 @@
-import { MEDIA_BUCKET, supabase } from "../supabase/client.js";
+import {
+  deleteObject,
+  getDownloadURL,
+  getStorage,
+  ref,
+  uploadBytes,
+} from "firebase/storage";
+import { app } from "../firebase/config.js";
+
+const storage = getStorage(app);
 
 async function compressImage(file, maxWidth = 1400, quality = 0.82) {
   if (!file.type.startsWith("image/")) return file;
@@ -23,14 +32,11 @@ async function compressImage(file, maxWidth = 1400, quality = 0.82) {
 }
 
 /**
- * Sube imagen a Supabase Storage.
+ * Sube una imagen optimizada a Firebase Storage.
  * @param {File} file
  * @param {string} folder products | promotions | branding | categories
  */
 export async function uploadImage(file, folder = "products") {
-  if (!supabase) {
-    throw new Error("Falta configurar Supabase Storage en las variables de entorno.");
-  }
   if (!file) throw new Error("No se seleccionó ninguna imagen.");
   if (!file.type.startsWith("image/")) {
     throw new Error("El archivo debe ser una imagen.");
@@ -42,40 +48,38 @@ export async function uploadImage(file, folder = "products") {
   const optimized = await compressImage(file);
   const safeName = `${Date.now()}-${optimized.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
   const path = `${folder}/${safeName}`;
+  const objectRef = ref(storage, path);
 
-  const { error } = await supabase.storage
-    .from(MEDIA_BUCKET)
-    .upload(path, optimized, {
+  try {
+    await uploadBytes(objectRef, optimized, {
       contentType: optimized.type || "image/jpeg",
-      upsert: false,
-      cacheControl: "3600",
+      cacheControl: "public,max-age=31536000",
+      customMetadata: { source: "burger-nick-admin" },
     });
-
-  if (error) {
-    const msg = error.message || "Error al subir imagen a Supabase";
-    if (/bucket|not found|404/i.test(msg)) {
+    const url = await getDownloadURL(objectRef);
+    return { url, path };
+  } catch (error) {
+    if (error?.code === "storage/unauthorized") {
       throw new Error(
-        "Bucket 'media' no encontrado en Supabase. Creá el bucket público 'media' (ver SUPABASE_SETUP.md)."
+        "Firebase Storage rechazó la subida. Verificá la sesión admin y publicá storage.rules."
       );
     }
-    throw new Error(msg);
+    if (error?.code === "storage/bucket-not-found") {
+      throw new Error("El bucket de Firebase Storage todavía no está habilitado.");
+    }
+    throw new Error(error?.message || "No se pudo subir la imagen.");
   }
-
-  const { data } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(path);
-  if (!data?.publicUrl) throw new Error("No se pudo obtener la URL pública.");
-
-  return { url: data.publicUrl, path };
 }
 
 export async function deleteImageByPath(path) {
   if (!path) return;
-  if (!supabase) {
-    throw new Error("Falta configurar Supabase Storage en las variables de entorno.");
-  }
   // Solo borrar paths relativos del bucket (no URLs externas)
   if (/^https?:\/\//i.test(path)) return;
-  const { error } = await supabase.storage.from(MEDIA_BUCKET).remove([path]);
-  if (error && !/not found|404/i.test(error.message || "")) {
-    throw error;
+  try {
+    await deleteObject(ref(storage, path));
+  } catch (error) {
+    if (error?.code !== "storage/object-not-found") {
+      throw error;
+    }
   }
 }

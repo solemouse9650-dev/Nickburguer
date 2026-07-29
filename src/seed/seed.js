@@ -7,15 +7,19 @@ import { initializeApp } from "firebase/app";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import {
   Timestamp,
+  collection,
   doc,
+  getDoc,
+  getDocs,
   getFirestore,
+  limit,
+  query,
   serverTimestamp,
   setDoc,
 } from "firebase/firestore";
 import { DEFAULT_SETTINGS } from "../services/settings.js";
 import { DEFAULT_CATEGORIES } from "../services/categories.js";
 import {
-  ADMIN_EMAIL,
   DEMO_SETTINGS_OVERLAY,
   SEED_COUPONS,
   SEED_CUSTOMERS,
@@ -23,6 +27,7 @@ import {
   SEED_PRODUCTS,
   SEED_PROMOS,
 } from "./seedData.js";
+import { assertValidSeedData } from "./validateSeed.js";
 
 const firebaseConfig = {
   apiKey: process.env.VITE_FIREBASE_API_KEY,
@@ -63,17 +68,35 @@ function mergeDeep(base, overlay) {
 
 async function main() {
   const password = getArg("password") || process.env.SEED_PASSWORD || "";
-  if (!password) {
-    console.error("Falta password. Ejemplo: npm run seed -- --password=****");
+  const adminEmail = String(process.env.VITE_ADMIN_EMAIL || "").trim();
+  const force = getArg("force") === "true" || process.env.SEED_FORCE === "true";
+  const missingFirebaseVars = Object.entries(firebaseConfig)
+    .filter(([, value]) => !value)
+    .map(([key]) => key);
+  if (missingFirebaseVars.length) {
+    console.error(`Faltan variables Firebase: ${missingFirebaseVars.join(", ")}`);
     process.exit(1);
   }
+  if (!password) {
+    console.error("Falta SEED_PASSWORD. Cargalo solo en la sesión actual de la terminal.");
+    process.exit(1);
+  }
+  if (!adminEmail) {
+    console.error("Falta VITE_ADMIN_EMAIL en .env.local.");
+    process.exit(1);
+  }
+
+  const validation = assertValidSeedData();
+  console.log(
+    `Datos demo validados: ${validation.counts.products} productos, ${validation.counts.orders} pedidos.`
+  );
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
 
   console.log("Iniciando sesión como admin...");
-  const cred = await signInWithEmailAndPassword(auth, ADMIN_EMAIL, password);
+  const cred = await signInWithEmailAndPassword(auth, adminEmail, password);
   const uid = cred.user.uid;
 
   console.log("Creando perfil admin...");
@@ -81,12 +104,24 @@ async function main() {
     doc(db, "users", uid),
     {
       uid,
-      email: ADMIN_EMAIL,
+      email: adminEmail,
       role: "admin",
       createdAt: serverTimestamp(),
     },
     { merge: true }
   );
+
+  if (!force) {
+    const [productsSnapshot, ordersSnapshot] = await Promise.all([
+      getDocs(query(collection(db, "products"), limit(1))),
+      getDocs(query(collection(db, "orders"), limit(1))),
+    ]);
+    if (!productsSnapshot.empty || !ordersSnapshot.empty) {
+      throw new Error(
+        "La base ya contiene productos o pedidos. El seed se canceló para no sobrescribir producción. Usá --force=true únicamente si verificaste que corresponde."
+      );
+    }
+  }
 
   console.log("Configuración del negocio...");
   const settings = mergeDeep(DEFAULT_SETTINGS, DEMO_SETTINGS_OVERLAY);
@@ -156,15 +191,19 @@ async function main() {
   console.log("Clientes...");
   for (const c of SEED_CUSTOMERS) {
     const { id, ...data } = c;
-    const now = Timestamp.now();
+    const customerDates = SEED_ORDERS.filter((order) => order.phone === id)
+      .map((order) => demoDate(order))
+      .sort((a, b) => a - b);
+    const firstPurchase = Timestamp.fromDate(customerDates[0] || new Date());
+    const lastPurchase = Timestamp.fromDate(customerDates.at(-1) || new Date());
     await setDoc(
       doc(db, "customers", id),
       {
         ...data,
         phone: id,
-        registeredAt: now,
-        firstPurchaseAt: now,
-        lastPurchaseAt: now,
+        registeredAt: firstPurchase,
+        firstPurchaseAt: firstPurchase,
+        lastPurchaseAt: lastPurchase,
         updatedAt: serverTimestamp(),
       },
       { merge: true }
@@ -207,9 +246,17 @@ async function main() {
   }
 
   console.log("Contador de órdenes...");
+  const counterRef = doc(db, "counters", "orders");
+  const counterSnapshot = await getDoc(counterRef);
+  const currentCounter = counterSnapshot.exists()
+    ? Number(counterSnapshot.data().value || 0)
+    : 0;
   await setDoc(
-    doc(db, "counters", "orders"),
-    { value: Math.max(maxCounter, SEED_ORDERS.length), updatedAt: serverTimestamp() },
+    counterRef,
+    {
+      value: Math.max(currentCounter, maxCounter, SEED_ORDERS.length),
+      updatedAt: serverTimestamp(),
+    },
     { merge: true }
   );
 

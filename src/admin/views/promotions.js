@@ -160,15 +160,7 @@ function openForm(root, promo) {
         <div class="field"><label>Fecha inicio</label><input type="date" name="startDate" value="${toInputDate(promo?.startDate)}" /></div>
         <div class="field"><label>Fecha fin</label><input type="date" name="endDate" value="${toInputDate(promo?.endDate)}" /></div>
         <div class="field"><label>Precio (opcional)</label><input type="number" name="price" value="${promo?.price ?? ""}" /></div>
-        <div class="field">
-          <label>Tipo descuento</label>
-          <select name="discountType">
-            <option value="none" ${!promo?.discountType || promo?.discountType === "none" ? "selected" : ""}>Sin descuento numérico</option>
-            <option value="percent" ${promo?.discountType === "percent" ? "selected" : ""}>Porcentaje</option>
-            <option value="fixed" ${promo?.discountType === "fixed" ? "selected" : ""}>Monto fijo</option>
-          </select>
-        </div>
-        <div class="field"><label>Valor descuento</label><input type="number" name="discountValue" min="0" value="${promo?.discountValue ?? ""}" /></div>
+        <div class="field full"><p class="muted">Las promociones son piezas informativas. Para aplicar descuentos en el checkout, creá un cupón.</p></div>
         <div class="field">
           <div class="switch-row" style="border:0;padding-top:1.6rem">
             <span>Activa</span>
@@ -220,8 +212,6 @@ function openForm(root, promo) {
         link: form.link.value.trim(),
         active: form.active.checked,
         price: form.price.value ? Number(form.price.value) : null,
-        discountType: form.discountType.value,
-        discountValue: form.discountValue.value ? Number(form.discountValue.value) : null,
         startDate: fromInputDate(form.startDate.value),
         endDate: fromInputDate(form.endDate.value),
         imageUrl,

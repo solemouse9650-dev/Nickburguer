@@ -1,9 +1,18 @@
-import { Timestamp, doc, serverTimestamp, setDoc } from "firebase/firestore";
+import {
+  Timestamp,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  limit,
+  query,
+  serverTimestamp,
+  setDoc,
+} from "firebase/firestore";
 import { auth, db } from "../firebase/config.js";
 import { DEFAULT_SETTINGS } from "../services/settings.js";
 import { seedDefaultCategories } from "../services/categories.js";
 import {
-  ADMIN_EMAIL,
   DEMO_SETTINGS_OVERLAY,
   SEED_COUPONS,
   SEED_CUSTOMERS,
@@ -11,6 +20,7 @@ import {
   SEED_PRODUCTS,
   SEED_PROMOS,
 } from "./seedData.js";
+import { assertValidSeedData } from "./validateSeed.js";
 
 function demoDate({ daysAgo = 0, hoursAgo = 0 } = {}) {
   const d = new Date();
@@ -39,17 +49,28 @@ function mergeDeep(base, overlay) {
 export async function runSeedClient() {
   const user = auth.currentUser;
   if (!user) throw new Error("Debés iniciar sesión como administrador.");
+  const validation = assertValidSeedData();
 
   await setDoc(
     doc(db, "users", user.uid),
     {
       uid: user.uid,
-      email: user.email || ADMIN_EMAIL,
+      email: user.email || "",
       role: "admin",
       createdAt: serverTimestamp(),
     },
     { merge: true }
   );
+
+  const [productsSnapshot, ordersSnapshot] = await Promise.all([
+    getDocs(query(collection(db, "products"), limit(1))),
+    getDocs(query(collection(db, "orders"), limit(1))),
+  ]);
+  if (!productsSnapshot.empty || !ordersSnapshot.empty) {
+    throw new Error(
+      "La base ya contiene productos o pedidos. La carga demo fue cancelada para proteger los datos existentes."
+    );
+  }
 
   const settings = mergeDeep(DEFAULT_SETTINGS, DEMO_SETTINGS_OVERLAY);
   await setDoc(
@@ -94,15 +115,19 @@ export async function runSeedClient() {
 
   for (const c of SEED_CUSTOMERS) {
     const { id, ...data } = c;
-    const now = Timestamp.now();
+    const customerDates = SEED_ORDERS.filter((order) => order.phone === id)
+      .map((order) => demoDate(order))
+      .sort((a, b) => a - b);
+    const firstPurchase = Timestamp.fromDate(customerDates[0] || new Date());
+    const lastPurchase = Timestamp.fromDate(customerDates.at(-1) || new Date());
     await setDoc(
       doc(db, "customers", id),
       {
         ...data,
         phone: id,
-        registeredAt: now,
-        firstPurchaseAt: now,
-        lastPurchaseAt: now,
+        registeredAt: firstPurchase,
+        firstPurchaseAt: firstPurchase,
+        lastPurchaseAt: lastPurchase,
         updatedAt: serverTimestamp(),
       },
       { merge: true }
@@ -141,17 +166,21 @@ export async function runSeedClient() {
     );
   }
 
+  const counterRef = doc(db, "counters", "orders");
+  const counterSnapshot = await getDoc(counterRef);
+  const currentCounter = counterSnapshot.exists()
+    ? Number(counterSnapshot.data().value || 0)
+    : 0;
   await setDoc(
-    doc(db, "counters", "orders"),
-    { value: Math.max(maxCounter, SEED_ORDERS.length), updatedAt: serverTimestamp() },
+    counterRef,
+    {
+      value: Math.max(currentCounter, maxCounter, SEED_ORDERS.length),
+      updatedAt: serverTimestamp(),
+    },
     { merge: true }
   );
 
   return {
-    products: SEED_PRODUCTS.length,
-    promotions: SEED_PROMOS.length,
-    coupons: SEED_COUPONS.length,
-    customers: SEED_CUSTOMERS.length,
-    orders: SEED_ORDERS.length,
+    ...validation.counts,
   };
 }

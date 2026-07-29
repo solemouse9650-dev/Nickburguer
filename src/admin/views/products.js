@@ -242,6 +242,7 @@ function openForm(root, product) {
         </div>
         <div class="field full"><label>Descripción</label><textarea name="description" rows="3">${escapeHtml(product?.description || "")}</textarea></div>
         <div class="field full"><label>Ingredientes</label><input name="ingredients" value="${escapeHtml(product?.ingredients || "")}" /></div>
+        <div class="field full"><label>Etiquetas de búsqueda</label><input name="tags" value="${escapeHtml(Array.isArray(product?.tags) ? product.tags.join(", ") : product?.tags || "")}" placeholder="doble, cheddar, picante" /></div>
         <div class="field"><label>Precio *</label><input name="price" type="number" min="0" step="100" required value="${product?.originalPrice ?? product?.price ?? ""}" /></div>
         <div class="field"><label>Precio oferta</label><input name="salePrice" type="number" min="0" step="100" value="${product?.salePrice ?? ""}" /></div>
         <div class="field"><label>Orden visual</label><input name="sortOrder" type="number" value="${product?.sortOrder ?? 0}" /></div>
@@ -253,7 +254,7 @@ function openForm(root, product) {
           <div class="switch-row"><span>🔥 Oferta</span><label class="switch"><input type="checkbox" name="isOnSale" ${product?.isOnSale ? "checked" : ""} /><span></span></label></div>
         </div>
         <div class="field full">
-          <label>Imagen (Supabase Storage)</label>
+          <label>Imagen (Firebase Storage)</label>
           <div class="dropzone" id="dropzone">
             <p>Arrastrá una imagen o hacé clic</p>
             ${imagePreview ? `<img src="${escapeHtml(imagePreview)}" alt="Vista previa" />` : ""}
@@ -352,6 +353,10 @@ async function saveProduct(e, root) {
       name: form.name.value.trim(),
       description: form.description.value.trim(),
       ingredients: form.ingredients.value.trim(),
+      tags: form.tags.value
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean),
       category: form.category.value,
       price: isOnSale && salePrice != null ? salePrice : price,
       originalPrice: price,

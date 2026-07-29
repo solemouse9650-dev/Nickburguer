@@ -24,6 +24,7 @@ let alertUnsubs = [];
 let appReady = false;
 let authListenerBound = false;
 let routeSeq = 0;
+const NOTIFICATIONS_SEEN_KEY = "burger_nick_admin_notifications_seen";
 /** @type {null | (() => void)} */
 let activeUnmount = null;
 
@@ -168,6 +169,7 @@ function bindShell() {
     document.getElementById("sidebar")?.classList.toggle("is-open");
   });
   document.getElementById("notifBell")?.addEventListener("click", () => {
+    markNotificationsSeen();
     location.hash = "#/notificaciones";
   });
 }
@@ -276,6 +278,9 @@ async function boot() {
 
 async function startGlobalAlerts() {
   stopGlobalAlerts();
+  if (!localStorage.getItem(NOTIFICATIONS_SEEN_KEY)) {
+    localStorage.setItem(NOTIFICATIONS_SEEN_KEY, String(Date.now()));
+  }
 
   const [{ listenOrders }, { listenProducts }, { listenPromotions }, { buildNotifications }] =
     await Promise.all([
@@ -291,9 +296,10 @@ async function startGlobalAlerts() {
 
   const paint = () => {
     const alerts = buildNotifications({ orders, products, promotions });
-    // Solo pendientes nuevos + alertas warn (stock / promos / cancelados)
+    const seenAt = Number(localStorage.getItem(NOTIFICATIONS_SEEN_KEY) || 0);
+    // Solo pedidos posteriores a la última visita + alertas operativas.
     const count = alerts.filter(
-      (a) => a.level === "warn" || a.title === "Nuevo pedido"
+      (a) => a.level === "warn" || (a.title === "Nuevo pedido" && a.at > seenAt)
     ).length;
     const badge = document.getElementById("notifBadge");
     const dot = document.getElementById("bellDot");
@@ -411,6 +417,7 @@ async function loadModule(name) {
 async function route(force = false) {
   const hash = (location.hash || "#/dashboard").replace(/^#\/?/, "");
   const name = hash.split("?")[0] || "dashboard";
+  if (name === "notificaciones") markNotificationsSeen();
   if (!force && name === current) return;
 
   const seq = ++routeSeq;
@@ -438,6 +445,14 @@ async function route(force = false) {
     if (seq !== routeSeq) return;
     root.innerHTML = `<div class="empty">${err?.message || "No se pudo cargar esta sección."}</div>`;
   }
+}
+
+function markNotificationsSeen() {
+  localStorage.setItem(NOTIFICATIONS_SEEN_KEY, String(Date.now()));
+  const badge = document.getElementById("notifBadge");
+  const dot = document.getElementById("bellDot");
+  if (badge) badge.hidden = true;
+  if (dot) dot.hidden = true;
 }
 
 boot();

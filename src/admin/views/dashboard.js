@@ -45,8 +45,8 @@ export function mountDashboard(root) {
         <button type="button" class="btn btn-primary" id="runSeedBtn">Cargar datos demo</button>
       </div>
       <p class="muted">
-        Carga un catálogo completo ficticio: productos, categorías, promociones, cupones, clientes,
-        pedidos activos/históricos y datos de pago (alias / CBU) para mostrar la web y el panel.
+        Disponible únicamente para una base vacía. Carga productos, categorías, promociones,
+        cupones, clientes y pedidos ficticios para probar todo el panel sin sobrescribir datos reales.
       </p>
     </div>
 
@@ -119,6 +119,10 @@ export function mountDashboard(root) {
 
   root.querySelector("#runSeedBtn")?.addEventListener("click", async () => {
     const btn = root.querySelector("#runSeedBtn");
+    const confirmed = confirm(
+      "Se cargarán datos ficticios en Firebase. Esta acción solo funciona si productos y pedidos están vacíos. ¿Continuar?"
+    );
+    if (!confirmed) return;
     btn.disabled = true;
     btn.textContent = "Cargando demo...";
     try {
@@ -167,7 +171,7 @@ function paint(root, { orders, products, promotions, customers, gotProducts, got
   const topProduct = productSalesMap(monthOrders)[0];
 
   const banner = root.querySelector("#seedBanner");
-  if (banner) banner.hidden = false;
+  if (banner) banner.hidden = products.length > 0 || orders.length > 0;
 
   const stats = root.querySelector("#dashStats");
   if (stats) {

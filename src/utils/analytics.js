@@ -1,4 +1,10 @@
-import { formatDate, formatMoney, productUnitPrice, statusLabel } from "../utils/format.js";
+import {
+  formatDate,
+  formatMoney,
+  normalizeOrderStatus,
+  productUnitPrice,
+  statusLabel,
+} from "../utils/format.js";
 
 export function toDate(value) {
   if (!value) return null;
@@ -24,7 +30,7 @@ export function startOfWeek(date = new Date()) {
 }
 
 export function isPaidOrder(o) {
-  return o.status !== "cancelado";
+  return normalizeOrderStatus(o.status) === "entregado";
 }
 
 export function filterOrdersByRange(orders, from, to) {

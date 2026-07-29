@@ -3,6 +3,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDocs,
   onSnapshot,
   orderBy,
   query,
@@ -94,7 +95,6 @@ export async function reorderCategories(orderedIds) {
 }
 
 export async function seedDefaultCategories() {
-  const { getDocs } = await import("firebase/firestore");
   const snap = await getDocs(col);
   if (!snap.empty) return false;
   const batch = writeBatch(db);

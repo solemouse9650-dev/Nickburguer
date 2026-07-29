@@ -13,7 +13,7 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "../firebase/config.js";
-import { normalizePhone } from "../utils/format.js";
+import { normalizeOrderStatus, normalizePhone } from "../utils/format.js";
 import { upsertCustomerFromOrder } from "./customers.js";
 import { calcCouponDiscount, validateCoupon } from "./coupons.js";
 
@@ -68,17 +68,126 @@ export function listenOrdersByPhone(phone, callback, onError) {
 }
 
 export async function updateOrderStatus(id, status) {
-  await updateDoc(doc(db, "orders", id), {
-    status,
-    updatedAt: serverTimestamp(),
+  const orderRef = doc(db, "orders", id);
+  await runTransaction(db, async (tx) => {
+    const orderSnapshot = await tx.get(orderRef);
+    if (!orderSnapshot.exists()) throw new Error("El pedido ya no existe.");
+
+    const order = orderSnapshot.data();
+    const previous = normalizeOrderStatus(order.status);
+    const next = normalizeOrderStatus(status);
+    const changesCancellation = (previous === "cancelado") !== (next === "cancelado");
+    let customerRef = null;
+    let customerSnapshot = null;
+
+    if (changesCancellation && order.phone) {
+      customerRef = doc(db, "customers", normalizePhone(order.phone));
+      customerSnapshot = await tx.get(customerRef);
+    }
+
+    tx.update(orderRef, {
+      status,
+      updatedAt: serverTimestamp(),
+    });
+
+    if (customerRef && customerSnapshot?.exists()) {
+      const customer = customerSnapshot.data();
+      const total = Math.max(0, Number(order.total || 0));
+      const currentSpent = Math.max(0, Number(customer.totalSpent || 0));
+      tx.update(customerRef, {
+        totalSpent:
+          next === "cancelado"
+            ? Math.max(0, currentSpent - total)
+            : currentSpent + total,
+        updatedAt: serverTimestamp(),
+      });
+    }
   });
 }
 
 export async function updateOrder(id, data) {
   const { id: _id, createdAt, orderNumber, ...rest } = data;
-  await updateDoc(doc(db, "orders", id), {
-    ...rest,
-    updatedAt: serverTimestamp(),
+  const orderRef = doc(db, "orders", id);
+  await runTransaction(db, async (tx) => {
+    const orderSnapshot = await tx.get(orderRef);
+    if (!orderSnapshot.exists()) throw new Error("El pedido ya no existe.");
+
+    const previous = orderSnapshot.data();
+    const previousPhone = normalizePhone(previous.phone);
+    const nextPhone = normalizePhone(rest.phone || previous.phone);
+    const previousCustomerRef = previousPhone
+      ? doc(db, "customers", previousPhone)
+      : null;
+    const nextCustomerRef = nextPhone ? doc(db, "customers", nextPhone) : null;
+    const previousCustomerSnapshot = previousCustomerRef
+      ? await tx.get(previousCustomerRef)
+      : null;
+    const nextCustomerSnapshot =
+      nextCustomerRef && nextPhone !== previousPhone
+        ? await tx.get(nextCustomerRef)
+        : previousCustomerSnapshot;
+
+    const previousContribution =
+      normalizeOrderStatus(previous.status) === "cancelado"
+        ? 0
+        : Math.max(0, Number(previous.total || 0));
+    const nextContribution =
+      normalizeOrderStatus(rest.status ?? previous.status) === "cancelado"
+        ? 0
+        : Math.max(0, Number(rest.total ?? previous.total ?? 0));
+
+    tx.update(orderRef, {
+      ...rest,
+      phone: nextPhone,
+      updatedAt: serverTimestamp(),
+    });
+
+    if (previousPhone && previousPhone === nextPhone && previousCustomerSnapshot?.exists()) {
+      const customer = previousCustomerSnapshot.data();
+      tx.update(previousCustomerRef, {
+        totalSpent: Math.max(
+          0,
+          Number(customer.totalSpent || 0) - previousContribution + nextContribution
+        ),
+        updatedAt: serverTimestamp(),
+      });
+    } else {
+      if (previousCustomerRef && previousCustomerSnapshot?.exists()) {
+        const customer = previousCustomerSnapshot.data();
+        tx.update(previousCustomerRef, {
+          totalOrders: Math.max(0, Number(customer.totalOrders || 0) - 1),
+          totalSpent: Math.max(
+            0,
+            Number(customer.totalSpent || 0) - previousContribution
+          ),
+          updatedAt: serverTimestamp(),
+        });
+      }
+      if (nextCustomerRef) {
+        const customer = nextCustomerSnapshot?.exists()
+          ? nextCustomerSnapshot.data()
+          : {};
+        tx.set(
+          nextCustomerRef,
+          {
+            id: nextPhone,
+            phone: nextPhone,
+            firstName: rest.firstName || customer.firstName || "",
+            lastName: rest.lastName || customer.lastName || "",
+            email: rest.email || customer.email || "",
+            address: rest.address || customer.address || "",
+            status: customer.status || "Activo",
+            totalOrders: Number(customer.totalOrders || 0) + 1,
+            totalSpent: Number(customer.totalSpent || 0) + nextContribution,
+            registeredAt: customer.registeredAt || serverTimestamp(),
+            firstPurchaseAt: customer.firstPurchaseAt || serverTimestamp(),
+            lastPurchaseAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+      }
+    }
   });
 }
 
@@ -144,7 +253,16 @@ export async function createOrderFromCheckout(payload) {
     // Siempre recalcular: no confiar en un total del cliente desfasado
     const total = Math.max(0, subtotal + deliveryCost - discount);
 
-    tx.set(counterRef, { value: next, updatedAt: serverTimestamp() }, { merge: true });
+    tx.set(
+      counterRef,
+      {
+        value: next,
+        lastOrderId: orderRef.id,
+        lastOrderNumber: orderNumber,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
 
     const {
       deliveryCostBeforeCoupon: _drop,
