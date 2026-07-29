@@ -49,6 +49,7 @@ async function main() {
     "coupons",
     "customers",
     "orders",
+    "reservations",
   ];
   const counts = {};
   for (const name of collectionNames) {
@@ -58,11 +59,16 @@ async function main() {
   const settings = await getDoc(doc(db, "business_settings", "main"));
   const counter = await getDoc(doc(db, "counters", "orders"));
   if (!settings.exists()) throw new Error("Falta business_settings/main.");
-  if (!counter.exists() || Number(counter.data().value || 0) < 1) {
-    throw new Error("El contador de pedidos no está inicializado.");
+  if (counter.exists() && !Number.isFinite(Number(counter.data().value))) {
+    throw new Error("El contador histórico de pedidos es inválido.");
   }
 
   const checkRef = doc(db, "products", "panel-healthcheck-temporary");
+  const reservationCheckRef = doc(
+    db,
+    "reservations",
+    "panel-healthcheck-reservation-temporary"
+  );
   try {
     await setDoc(checkRef, {
       name: "Panel healthcheck",
@@ -80,8 +86,32 @@ async function main() {
     if (!check.exists() || check.data().name !== "Panel healthcheck actualizado") {
       throw new Error("La prueba CRUD de productos no pudo verificarse.");
     }
+    await setDoc(reservationCheckRef, {
+      name: "Reserva healthcheck",
+      phone: "3760000099",
+      date: "2099-12-31",
+      time: "21:00",
+      guests: 2,
+      notes: "",
+      status: "pendiente",
+      source: "healthcheck",
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    await updateDoc(reservationCheckRef, {
+      status: "confirmada",
+      updatedAt: serverTimestamp(),
+    });
+    const reservationCheck = await getDoc(reservationCheckRef);
+    if (
+      !reservationCheck.exists()
+      || reservationCheck.data().status !== "confirmada"
+    ) {
+      throw new Error("La prueba CRUD de reservas no pudo verificarse.");
+    }
   } finally {
     await deleteDoc(checkRef).catch(() => {});
+    await deleteDoc(reservationCheckRef).catch(() => {});
   }
 
   await signOut(auth);
@@ -91,7 +121,7 @@ async function main() {
       projectId: firebaseConfig.projectId,
       adminUid: expectedUid,
       counts,
-      counter: counter.data().value,
+      counter: counter.exists() ? Number(counter.data().value || 0) : null,
       crud: "create/update/read/delete OK",
     })
   );

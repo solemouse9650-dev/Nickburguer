@@ -16,7 +16,6 @@ import {
   query,
   serverTimestamp,
   setDoc,
-  updateDoc,
 } from "firebase/firestore";
 import { DEFAULT_SETTINGS } from "../services/settings.js";
 import { DEFAULT_CATEGORIES } from "../services/categories.js";
@@ -27,6 +26,7 @@ import {
   SEED_ORDERS,
   SEED_PRODUCTS,
   SEED_PROMOS,
+  SEED_RESERVATIONS,
 } from "./seedData.js";
 import { assertValidSeedData } from "./validateSeed.js";
 
@@ -189,10 +189,29 @@ async function main() {
     console.log(`  ✓ ${data.code}`);
   }
 
+  console.log("Reservas demo...");
+  for (const reservation of SEED_RESERVATIONS) {
+    const { id, daysAhead, ...data } = reservation;
+    const date = new Date();
+    date.setDate(date.getDate() + Number(daysAhead || 1));
+    await setDoc(
+      doc(db, "reservations", id),
+      {
+        ...data,
+        date: date.toISOString().slice(0, 10),
+        source: "demo",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+    console.log(`  ✓ ${data.name}`);
+  }
+
   console.log("Clientes...");
   for (const c of SEED_CUSTOMERS) {
     const { id, ...data } = c;
-    const desiredTotalOrders = Math.max(1, Number(data.totalOrders || 1));
+    const desiredTotalOrders = Math.max(0, Number(data.totalOrders || 0));
     const customerDates = SEED_ORDERS.filter((order) => order.phone === id)
       .map((order) => demoDate(order))
       .sort((a, b) => a - b);
@@ -203,7 +222,7 @@ async function main() {
       {
         ...data,
         phone: id,
-        totalOrders: 1,
+        totalOrders: desiredTotalOrders,
         registeredAt: firstPurchase,
         firstPurchaseAt: firstPurchase,
         lastPurchaseAt: lastPurchase,
@@ -211,12 +230,6 @@ async function main() {
       },
       { merge: true }
     );
-    if (desiredTotalOrders > 1) {
-      await updateDoc(doc(db, "customers", id), {
-        totalOrders: desiredTotalOrders,
-        updatedAt: serverTimestamp(),
-      });
-    }
     console.log(`  ✓ ${data.firstName} ${data.lastName}`);
   }
 
@@ -278,6 +291,7 @@ async function main() {
   console.log(`  ${SEED_PRODUCTS.length} productos`);
   console.log(`  ${SEED_PROMOS.length} promociones`);
   console.log(`  ${SEED_COUPONS.length} cupones`);
+  console.log(`  ${SEED_RESERVATIONS.length} reservas`);
   console.log(`  ${SEED_CUSTOMERS.length} clientes`);
   console.log(`  ${SEED_ORDERS.length} pedidos`);
   process.exit(0);

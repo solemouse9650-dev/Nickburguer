@@ -57,6 +57,7 @@ export const Cart = (() => {
     const quantity = Math.max(1, Number(qty) || 1);
     const unitPrice = productUnitPrice(product);
     const existing = items.find((it) => it.productId === product.id);
+    if (!existing && items.length >= 3) return null;
     if (existing) {
       existing.quantity += quantity;
       existing.unitPrice = unitPrice;
@@ -113,6 +114,39 @@ export const Cart = (() => {
     return items.length === 0;
   }
 
+  function syncWithCatalog(catalog = []) {
+    const products = new Map(catalog.map((product) => [product.id, product]));
+    let changed = false;
+    const removed = [];
+    items = items.flatMap((item) => {
+      const product = products.get(item.productId);
+      if (!product || product.active === false || product.available === false) {
+        removed.push(item.name);
+        changed = true;
+        return [];
+      }
+      const nextPrice = productUnitPrice(product);
+      if (
+        nextPrice !== item.unitPrice ||
+        product.name !== item.name ||
+        product.imageUrl !== item.imageUrl
+      ) {
+        changed = true;
+      }
+      return [
+        {
+          ...item,
+          name: product.name || item.name,
+          unitPrice: nextPrice,
+          imageUrl: product.imageUrl || product.image || item.imageUrl,
+          category: product.category || "",
+        },
+      ];
+    });
+    if (changed) save();
+    return { changed, removed };
+  }
+
   return {
     subscribe,
     add,
@@ -123,5 +157,6 @@ export const Cart = (() => {
     subtotal,
     getItems,
     isEmpty,
+    syncWithCatalog,
   };
 })();

@@ -114,6 +114,10 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+body.nav-open {
+  overflow: hidden;
+}
+
 /* Sol de Mayo marca de agua sutil */
 body::before {
   content: "";
@@ -1998,7 +2002,7 @@ textarea.is-invalid {
 .cart-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 90;
+  z-index: 1900;
   background: rgba(0, 0, 0, 0.62);
   backdrop-filter: blur(4px);
   opacity: 0;
@@ -2016,7 +2020,7 @@ textarea.is-invalid {
   position: fixed;
   top: 0;
   right: 0;
-  z-index: 91;
+  z-index: 1901;
   width: min(100%, 420px);
   height: 100dvh;
   display: flex;
@@ -3410,6 +3414,66 @@ body::before {
   margin-top: .8rem;
 }
 
+.reservations__form {
+  grid-template-columns: 1fr;
+}
+
+.reservations__form .form-field {
+  display: grid;
+  gap: .45rem;
+}
+
+.reservations__form label {
+  color: #f2f0ea;
+  font-size: .82rem;
+  font-weight: 600;
+}
+
+.reservations__form label span {
+  color: #9a9a96;
+  font-weight: 400;
+}
+
+.reservations__form input,
+.reservations__form textarea {
+  width: 100%;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: .75rem;
+  background: rgba(255,255,255,.06);
+  color: #fff;
+  padding: .82rem .9rem;
+  font: inherit;
+}
+
+.reservations__form input:focus,
+.reservations__form textarea:focus {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  border-color: transparent;
+}
+
+.reservations__form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .75rem;
+}
+
+.reservations__form .form-message {
+  min-height: 1.35rem;
+  padding: 0;
+  border: 0;
+  color: #d8d2c3;
+  font-size: .84rem;
+}
+
+.reservations__form .form-message.is-error {
+  color: #ffaaa3;
+}
+
+.reservations__form .form-message.is-success {
+  color: #c6e9c5;
+}
+
 .about {
   background: #080808 !important;
 }
@@ -3684,6 +3748,10 @@ body::before {
   }
 
   .reservations__card {
+    grid-template-columns: 1fr;
+  }
+
+  .reservations__form-row {
     grid-template-columns: 1fr;
   }
 

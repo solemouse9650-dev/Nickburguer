@@ -8,7 +8,12 @@
     "build": "vite build",
     "preview": "vite preview",
     "validate:demo": "node src/seed/validateSeedCli.js",
-    "check": "npm run validate:demo && npm run build",
+    "lint": "biome lint src tests",
+    "deadcode": "knip",
+    "test": "node --test tests/core.test.js",
+    "test:e2e": "node tests/e2e.mjs",
+    "test:rules": "npx firebase-tools emulators:exec --only firestore --project nick-d259e \"node --test tests/firestore.rules.test.mjs\"",
+    "check": "npm run lint && npm run deadcode && npm test && npm run validate:demo && npm run build",
     "verify:panel": "node --env-file=.env.local src/seed/verifyPanel.js",
     "seed": "node --env-file=.env.local src/seed/seed.js"
   },
@@ -16,6 +21,22 @@
     "firebase": "^11.6.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.6",
+    "@firebase/rules-unit-testing": "^4.0.1",
+    "knip": "^6.29.0",
+    "playwright-core": "^1.62.0",
     "vite": "^6.2.5"
+  },
+  "knip": {
+    "entry": [
+      "src/admin/app.js",
+      "src/seed/*.js",
+      "tests/*.js",
+      "tests/*.mjs"
+    ],
+    "project": [
+      "src/**/*.js",
+      "tests/**/*.{js,mjs}"
+    ]
   }
 }

@@ -5,6 +5,7 @@ import {
   escapeHtml,
   formatDate,
   formatMoney,
+  normalizeOrderStatus,
   statusLabel,
 } from "../../utils/format.js";
 import { confirmDialog, showToast } from "../../utils/toast.js";
@@ -154,7 +155,7 @@ function vipBadge(c) {
 }
 
 function sortedFiltered() {
-  let list = customers.filter((c) => {
+  const list = customers.filter((c) => {
     if (!search) return true;
     const hay = `${c.firstName || ""} ${c.lastName || ""} ${c.phone || ""} ${c.email || ""}`.toLowerCase();
     return hay.includes(search);
@@ -228,7 +229,7 @@ function openProfile(root, customer) {
         <h2>Perfil: ${escapeHtml(name || customer.phone)}</h2>
         <button type="button" class="btn btn-ghost" id="closeProfile">Cerrar</button>
       </div>
-      <div class="stats-grid" style="grid-template-columns:repeat(4,1fr)">
+      <div class="stats-grid">
         <article class="stat-card"><span>Pedidos</span><strong>${customer.totalOrders || 0}</strong></article>
         <article class="stat-card"><span>Total gastado</span><strong>${formatMoney(customer.totalSpent || 0)}</strong></article>
         <article class="stat-card"><span>Ticket promedio</span><strong>${formatMoney(avg)}</strong></article>
@@ -319,7 +320,7 @@ function openProfile(root, customer) {
                 <td>${formatDate(o.createdAt || o.date)}</td>
                 <td>${escapeHtml(o.orderNumber || "")}</td>
                 <td>${escapeHtml(products)}</td>
-                <td><span class="badge badge-${o.status}">${statusLabel(o.status)}</span></td>
+                <td><span class="badge badge-${normalizeOrderStatus(o.status)}">${statusLabel(o.status)}</span></td>
                 <td>${formatMoney(o.total)}</td>
               </tr>`;
             })

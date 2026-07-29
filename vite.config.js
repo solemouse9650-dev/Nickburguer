@@ -13,6 +13,18 @@ export default defineConfig({
         legal: resolve(__dirname, "legal.html"),
         admin: resolve(__dirname, "admin/index.html"),
       },
+      output: {
+        manualChunks(id) {
+          const moduleId = id.replaceAll("\\", "/");
+          if (
+            moduleId.includes("@firebase/app-check")
+            || moduleId.includes("firebase/app-check")
+          ) {
+            return "firebase-app-check";
+          }
+          return undefined;
+        },
+      },
     },
   },
   server: {

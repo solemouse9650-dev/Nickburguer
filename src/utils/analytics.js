@@ -1,4 +1,5 @@
 import {
+  escapeHtml,
   formatDate,
   formatMoney,
   normalizeOrderStatus,
@@ -6,7 +7,7 @@ import {
   statusLabel,
 } from "../utils/format.js";
 
-export function toDate(value) {
+function toDate(value) {
   if (!value) return null;
   if (value?.toDate) return value.toDate();
   const d = new Date(value);
@@ -29,7 +30,7 @@ export function startOfWeek(date = new Date()) {
   return d;
 }
 
-export function isPaidOrder(o) {
+function isPaidOrder(o) {
   return normalizeOrderStatus(o.status) === "entregado";
 }
 
@@ -245,12 +246,16 @@ export function drawLineChart(canvas, series, key = "revenue") {
 }
 
 export function exportCsv(filename, rows, headers) {
-  const escape = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const escapeCsv = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
   const lines = [
-    headers.map((h) => escape(h.label)).join(","),
-    ...rows.map((row) => headers.map((h) => escape(h.value(row))).join(",")),
+    headers.map((header) => escapeCsv(header.label)).join(","),
+    ...rows.map((row) =>
+      headers.map((header) => escapeCsv(header.value(row))).join(",")
+    ),
   ];
-  const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+  const blob = new Blob([`\ufeff${lines.join("\n")}`], {
+    type: "text/csv;charset=utf-8;",
+  });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -265,23 +270,23 @@ export function printOrdersReport(title, orders) {
   const rows = orders
     .map(
       (o) => `<tr>
-      <td>${o.orderNumber || ""}</td>
-      <td>${`${o.firstName || ""} ${o.lastName || ""}`.trim()}</td>
-      <td>${o.phone || ""}</td>
-      <td>${statusLabel(o.status)}</td>
+      <td>${escapeHtml(o.orderNumber || "")}</td>
+      <td>${escapeHtml(`${o.firstName || ""} ${o.lastName || ""}`.trim())}</td>
+      <td>${escapeHtml(o.phone || "")}</td>
+      <td>${escapeHtml(statusLabel(o.status))}</td>
       <td>${formatMoney(o.total)}</td>
       <td>${formatDate(o.createdAt || o.date)}</td>
     </tr>`
     )
     .join("");
-  win.document.write(`<!DOCTYPE html><html><head><title>${title}</title>
+  win.document.write(`<!DOCTYPE html><html><head><title>${escapeHtml(title)}</title>
     <style>
       body{font-family:system-ui,sans-serif;padding:24px;color:#111}
       h1{font-size:20px} table{width:100%;border-collapse:collapse;margin-top:16px}
       th,td{border:1px solid #ddd;padding:8px;font-size:12px;text-align:left}
       th{background:#f5f5f5}
     </style></head><body>
-    <h1>${title}</h1>
+    <h1>${escapeHtml(title)}</h1>
     <p>Generado: ${new Date().toLocaleString("es-AR")}</p>
     <table><thead><tr><th>Orden</th><th>Cliente</th><th>Tel</th><th>Estado</th><th>Total</th><th>Fecha</th></tr></thead>
     <tbody>${rows || "<tr><td colspan='6'>Sin datos</td></tr>"}</tbody></table>
@@ -296,10 +301,10 @@ export function printOrderTicket(order) {
   const items = (order.items || [])
     .map(
       (it) =>
-        `<tr><td>${it.name}</td><td>${it.quantity || 1}</td><td>${formatMoney(it.unitPrice)}</td></tr>`
+        `<tr><td>${escapeHtml(it.name || "")}</td><td>${Number(it.quantity || 1)}</td><td>${formatMoney(it.unitPrice)}</td></tr>`
     )
     .join("");
-  win.document.write(`<!DOCTYPE html><html><head><title>${order.orderNumber}</title>
+  win.document.write(`<!DOCTYPE html><html><head><title>${escapeHtml(order.orderNumber || "Pedido")}</title>
     <style>
       body{font-family:monospace;padding:16px;max-width:360px;margin:0 auto;color:#000}
       h1{font-size:16px;margin:0 0 8px} .muted{color:#444;font-size:12px}
@@ -308,13 +313,13 @@ export function printOrderTicket(order) {
       .total{font-size:16px;font-weight:700;margin-top:12px}
     </style></head><body>
     <h1>BURGER NICK</h1>
-    <div class="muted">${order.orderNumber || ""}</div>
+    <div class="muted">${escapeHtml(order.orderNumber || "")}</div>
     <div class="muted">${formatDate(order.createdAt || order.date)}</div>
-    <p><strong>${`${order.firstName || ""} ${order.lastName || ""}`.trim()}</strong><br>
-    ${order.phone || ""}<br>${order.address || "Retiro en local"}</p>
-    <p class="muted">Pago: ${order.paymentMethod || "—"} · ${order.deliveryMethod || "—"}</p>
+    <p><strong>${escapeHtml(`${order.firstName || ""} ${order.lastName || ""}`.trim())}</strong><br>
+    ${escapeHtml(order.phone || "")}<br>${escapeHtml(order.address || "Retiro en local")}</p>
+    <p class="muted">Pago: ${escapeHtml(order.paymentMethod || "—")} · ${escapeHtml(order.deliveryMethod || "—")}</p>
     <table>${items || "<tr><td colspan='3'>Sin ítems</td></tr>"}</table>
-    ${order.notes ? `<p><strong>Obs:</strong> ${order.notes}</p>` : ""}
+    ${order.notes ? `<p><strong>Obs:</strong> ${escapeHtml(order.notes)}</p>` : ""}
     <div class="total">TOTAL ${formatMoney(order.total)}</div>
     <script>window.onload=()=>window.print()</script>
     </body></html>`);

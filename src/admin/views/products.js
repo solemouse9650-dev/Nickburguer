@@ -107,8 +107,8 @@ export function mountProducts(root) {
         if (!confirmDialog("¿Eliminar este producto?")) return;
         try {
           const p = products.find((x) => x.id === del.dataset.del);
-          if (p?.imagePath) await deleteImageByPath(p.imagePath);
           await deleteProduct(del.dataset.del);
+          if (p?.imagePath) deleteImageByPath(p.imagePath).catch(() => {});
           showToast("Producto eliminado", "success");
         } catch (err) {
           showToast(err.message || "Error al eliminar", "error");
@@ -129,6 +129,7 @@ export function unmountProducts() {
   products = [];
   editing = null;
   imageFile = null;
+  if (imagePreview.startsWith("blob:")) URL.revokeObjectURL(imagePreview);
   imagePreview = "";
   imagePath = "";
 }
@@ -330,6 +331,8 @@ async function saveProduct(e, root) {
   const btn = form.querySelector("#saveProductBtn");
   btn.disabled = true;
   btn.textContent = "Guardando...";
+  let uploadedPath = "";
+  let saved = false;
 
   try {
     const price = Number(form.price.value);
@@ -340,11 +343,10 @@ async function saveProduct(e, root) {
 
     if (imageFile) {
       const uploaded = await uploadImage(imageFile, "products");
-      if (editing?.imagePath) await deleteImageByPath(editing.imagePath);
       imageUrl = uploaded.url;
       nextPath = uploaded.path;
+      uploadedPath = uploaded.path;
     } else if (!imageUrl && editing?.imagePath) {
-      await deleteImageByPath(editing.imagePath);
       nextPath = "";
     }
 
@@ -378,11 +380,18 @@ async function saveProduct(e, root) {
 
     if (editing?.id) await updateProduct(editing.id, payload);
     else await createProduct(payload);
+    saved = true;
+    if (editing?.imagePath && editing.imagePath !== nextPath) {
+      deleteImageByPath(editing.imagePath).catch(() => {});
+    }
 
     showToast("Producto guardado", "success");
+    if (imagePreview.startsWith("blob:")) URL.revokeObjectURL(imagePreview);
+    imagePreview = "";
     root.querySelector("#productFormHost").innerHTML = "";
     editing = null;
   } catch (err) {
+    if (!saved && uploadedPath) deleteImageByPath(uploadedPath).catch(() => {});
     showToast(err.message || "Error al guardar", "error");
   } finally {
     btn.disabled = false;

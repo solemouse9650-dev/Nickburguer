@@ -214,9 +214,10 @@ export async function deleteCoupon(id) {
 
 export async function duplicateCoupon(coupon) {
   const { id, createdAt, updatedAt, usedCount, ...rest } = coupon;
+  const suffix = Date.now().toString(36).slice(-5).toUpperCase();
   return createCoupon({
     ...rest,
-    code: `${rest.code}-COPY`,
+    code: `${rest.code}-COPY-${suffix}`,
     usedCount: 0,
     active: false,
   });

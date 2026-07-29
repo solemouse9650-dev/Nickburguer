@@ -1,6 +1,7 @@
 /** Estado compartido del sitio público (datos en tiempo real). */
 export const store = {
   products: [],
+  categories: [],
   promotions: [],
   settings: null,
 };

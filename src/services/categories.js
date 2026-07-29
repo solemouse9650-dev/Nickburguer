@@ -9,6 +9,7 @@ import {
   query,
   serverTimestamp,
   updateDoc,
+  where,
   writeBatch,
 } from "firebase/firestore";
 import { db } from "../firebase/config.js";
@@ -31,7 +32,7 @@ export function listenCategories(callback, onError) {
     activeUnsub = onSnapshot(
       target,
       (snap) => {
-        let items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
         if (useFallback) {
           items.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
         }
@@ -65,7 +66,7 @@ export async function createCategory(data) {
   return ref.id;
 }
 
-export async function updateCategory(id, data) {
+export async function updateCategory(id, data, previousSlug = "") {
   const payload = { ...data };
   if (payload.slug != null || payload.name != null) {
     const raw = String(payload.slug || payload.name || "").trim();
@@ -73,6 +74,30 @@ export async function updateCategory(id, data) {
   }
   if (payload.name != null) payload.name = String(payload.name).trim();
   if (payload.sortOrder != null) payload.sortOrder = Number(payload.sortOrder ?? 99);
+  const nextSlug = payload.slug;
+  if (previousSlug && nextSlug && previousSlug !== nextSlug) {
+    const products = await getDocs(
+      query(collection(db, "products"), where("category", "==", previousSlug))
+    );
+    if (products.size > 450) {
+      throw new Error(
+        "Hay demasiados productos para renombrar esta categoría en una sola operación."
+      );
+    }
+    const batch = writeBatch(db);
+    batch.update(doc(db, "categories", id), {
+      ...payload,
+      updatedAt: serverTimestamp(),
+    });
+    products.docs.forEach((product) => {
+      batch.update(product.ref, {
+        category: nextSlug,
+        updatedAt: serverTimestamp(),
+      });
+    });
+    await batch.commit();
+    return;
+  }
   await updateDoc(doc(db, "categories", id), {
     ...payload,
     updatedAt: serverTimestamp(),

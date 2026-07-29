@@ -9,6 +9,7 @@ import { showToast } from "../utils/toast.js";
 const titles = {
   dashboard: "Dashboard",
   pedidos: "Pedidos",
+  reservas: "Reservas",
   productos: "Productos",
   categorias: "Categorías",
   promociones: "Promociones",
@@ -23,10 +24,14 @@ let current = "";
 let alertUnsubs = [];
 let appReady = false;
 let authListenerBound = false;
+let authUnsubscribe = null;
 let routeSeq = 0;
 const NOTIFICATIONS_SEEN_KEY = "burger_nick_admin_notifications_seen";
 /** @type {null | (() => void)} */
 let activeUnmount = null;
+/** @type {null | (() => boolean)} */
+let activeCanLeave = null;
+let restoringRoute = false;
 
 const bootEl = () => document.getElementById("bootLoading");
 const loginEl = () => document.getElementById("loginView");
@@ -132,7 +137,9 @@ function clearNotifBadge() {
 }
 
 function stopGlobalAlerts() {
-  alertUnsubs.forEach((u) => u && u());
+  alertUnsubs.forEach((unsubscribe) => {
+    unsubscribe?.();
+  });
   alertUnsubs = [];
   clearNotifBadge();
 }
@@ -144,6 +151,7 @@ function unmountActiveView() {
     /* ignore teardown errors */
   }
   activeUnmount = null;
+  activeCanLeave = null;
 }
 
 function teardownApp() {
@@ -166,7 +174,12 @@ function bindShell() {
     }
   });
   document.getElementById("menuToggle")?.addEventListener("click", () => {
-    document.getElementById("sidebar")?.classList.toggle("is-open");
+    const open = document.getElementById("sidebar")?.classList.toggle("is-open");
+    document.getElementById("menuToggle")?.setAttribute("aria-expanded", String(Boolean(open)));
+  });
+  document.getElementById("sidebarBackdrop")?.addEventListener("click", () => {
+    document.getElementById("sidebar")?.classList.remove("is-open");
+    document.getElementById("menuToggle")?.setAttribute("aria-expanded", "false");
   });
   document.getElementById("notifBell")?.addEventListener("click", () => {
     markNotificationsSeen();
@@ -254,7 +267,7 @@ async function boot() {
 
   if (!authListenerBound) {
     authListenerBound = true;
-    watchAuth((user) => {
+    authUnsubscribe = watchAuth((user) => {
       if (!appReady) return;
       if (!user) {
         teardownApp();
@@ -282,24 +295,28 @@ async function startGlobalAlerts() {
     localStorage.setItem(NOTIFICATIONS_SEEN_KEY, String(Date.now()));
   }
 
-  const [{ listenOrders }, { listenProducts }, { listenPromotions }, { buildNotifications }] =
+  const [
+    { listenOrders },
+    { listenReservations },
+    { buildNotifications },
+  ] =
     await Promise.all([
       import("../services/orders.js"),
-      import("../services/products.js"),
-      import("../services/promotions.js"),
+      import("../services/reservations.js"),
       import("../services/notifications.js"),
     ]);
 
   let orders = [];
-  let products = [];
-  let promotions = [];
+  let reservations = [];
 
   const paint = () => {
-    const alerts = buildNotifications({ orders, products, promotions });
+    const alerts = buildNotifications({ orders, reservations });
     const seenAt = Number(localStorage.getItem(NOTIFICATIONS_SEEN_KEY) || 0);
     // Solo pedidos posteriores a la última visita + alertas operativas.
     const count = alerts.filter(
-      (a) => a.level === "warn" || (a.title === "Nuevo pedido" && a.at > seenAt)
+      (a) =>
+        a.level === "warn"
+        || (["Nuevo pedido", "Nueva reserva"].includes(a.title) && a.at > seenAt)
     ).length;
     const badge = document.getElementById("notifBadge");
     const dot = document.getElementById("bellDot");
@@ -318,16 +335,9 @@ async function startGlobalAlerts() {
       },
       () => {}
     ),
-    listenProducts(
+    listenReservations(
       (d) => {
-        products = d;
-        paint();
-      },
-      () => {}
-    ),
-    listenPromotions(
-      (d) => {
-        promotions = d;
+        reservations = d;
         paint();
       },
       () => {}
@@ -345,6 +355,13 @@ async function loadModule(name) {
       return {
         mount: (root) => m.mountOrders(root),
         unmount: () => m.unmountOrders?.(),
+      };
+    }
+    case "reservas": {
+      const m = await import("./views/reservations.js");
+      return {
+        mount: (root) => m.mountReservations(root),
+        unmount: () => m.unmountReservations?.(),
       };
     }
     case "productos": {
@@ -401,9 +418,9 @@ async function loadModule(name) {
       return {
         mount: (root) => m.mountSettings(root),
         unmount: () => m.unmountSettings?.(),
+        canLeave: () => m.canLeaveSettings?.() ?? true,
       };
     }
-    case "dashboard":
     default: {
       const m = await import("./views/dashboard.js");
       return {
@@ -416,9 +433,22 @@ async function loadModule(name) {
 
 async function route(force = false) {
   const hash = (location.hash || "#/dashboard").replace(/^#\/?/, "");
-  const name = hash.split("?")[0] || "dashboard";
+  let name = hash.split("?")[0] || "dashboard";
+  if (!Object.hasOwn(titles, name)) {
+    name = "dashboard";
+    history.replaceState(null, "", `${location.pathname}#/dashboard`);
+    showToast("La sección solicitada no existe.", "error");
+  }
   if (name === "notificaciones") markNotificationsSeen();
   if (!force && name === current) return;
+  if (!force && !restoringRoute && activeCanLeave && !activeCanLeave()) {
+    restoringRoute = true;
+    location.hash = `#/${current || "dashboard"}`;
+    queueMicrotask(() => {
+      restoringRoute = false;
+    });
+    return;
+  }
 
   const seq = ++routeSeq;
   unmountActiveView();
@@ -430,6 +460,7 @@ async function route(force = false) {
   const title = document.getElementById("pageTitle");
   if (title) title.textContent = titles[name] || "Admin";
   document.getElementById("sidebar")?.classList.remove("is-open");
+  document.getElementById("menuToggle")?.setAttribute("aria-expanded", "false");
 
   const root = document.getElementById("viewRoot");
   if (!root) return;
@@ -441,6 +472,7 @@ async function route(force = false) {
     root.innerHTML = "";
     mod.mount(root);
     activeUnmount = mod.unmount;
+    activeCanLeave = mod.canLeave || null;
   } catch (err) {
     if (seq !== routeSeq) return;
     root.innerHTML = `<div class="empty">${err?.message || "No se pudo cargar esta sección."}</div>`;
@@ -456,3 +488,10 @@ function markNotificationsSeen() {
 }
 
 boot();
+
+window.addEventListener("pagehide", () => {
+  teardownApp();
+  authUnsubscribe?.();
+  authUnsubscribe = null;
+  authListenerBound = false;
+});

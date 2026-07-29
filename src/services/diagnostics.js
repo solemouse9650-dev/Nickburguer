@@ -29,12 +29,21 @@ export async function runSystemDiagnostics() {
       ok: navigator.onLine,
       detail: navigator.onLine ? "En línea" : "Sin conexión",
     },
+    {
+      id: "app-check",
+      label: "Firebase App Check",
+      ok: Boolean(import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY),
+      detail: import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY
+        ? "Clave del sitio configurada"
+        : "Falta VITE_FIREBASE_APPCHECK_SITE_KEY en el entorno de producción",
+    },
   ];
 
   const firestoreResult = await Promise.allSettled([
     getDocs(query(collection(db, "business_settings"), limit(1))),
     getDocs(query(collection(db, "products"), limit(1))),
     getDocs(query(collection(db, "orders"), limit(1))),
+    getDocs(query(collection(db, "reservations"), limit(1))),
   ]);
   const firestoreError = firestoreResult.find((result) => result.status === "rejected");
   checks.push({
@@ -43,7 +52,7 @@ export async function runSystemDiagnostics() {
     ok: !firestoreError,
     detail: firestoreError
       ? errorMessage(firestoreError.reason)
-      : "Configuración, productos y pedidos accesibles",
+      : "Configuración, productos, pedidos y reservas accesibles",
   });
 
   try {

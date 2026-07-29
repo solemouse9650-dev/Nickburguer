@@ -1,5 +1,9 @@
 import { initializeApp } from "firebase/app";
 import {
+  initializeAppCheck,
+  ReCaptchaV3Provider,
+} from "firebase/app-check";
+import {
   browserLocalPersistence,
   getAuth,
   initializeAuth,
@@ -31,16 +35,14 @@ export const app = initializeApp(firebaseConfig);
 
 const appCheckSiteKey = runtimeEnv.VITE_FIREBASE_APPCHECK_SITE_KEY;
 if (typeof window !== "undefined" && appCheckSiteKey) {
-  import("firebase/app-check")
-    .then(({ ReCaptchaV3Provider, initializeAppCheck }) => {
-      initializeAppCheck(app, {
-        provider: new ReCaptchaV3Provider(appCheckSiteKey),
-        isTokenAutoRefreshEnabled: true,
-      });
-    })
-    .catch((error) => {
-      console.warn("[Firebase] No se pudo iniciar App Check:", error?.message || error);
+  try {
+    initializeAppCheck(app, {
+      provider: new ReCaptchaV3Provider(appCheckSiteKey),
+      isTokenAutoRefreshEnabled: true,
     });
+  } catch (error) {
+    console.warn("[Firebase] No se pudo iniciar App Check:", error?.message || error);
+  }
 }
 
 function createAuth() {

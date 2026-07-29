@@ -552,6 +552,40 @@ export const SEED_COUPONS = [
   },
 ];
 
+/** Reservas ficticias para probar el flujo y la gestión administrativa. */
+export const SEED_RESERVATIONS = [
+  {
+    id: "demo-reservation-01",
+    name: "María Gómez",
+    phone: "3760000001",
+    daysAhead: 1,
+    time: "21:00",
+    guests: 4,
+    notes: "Mesa tranquila, si es posible.",
+    status: "pendiente",
+  },
+  {
+    id: "demo-reservation-02",
+    name: "Lucas Fernández",
+    phone: "3760000002",
+    daysAhead: 2,
+    time: "22:00",
+    guests: 2,
+    notes: "",
+    status: "confirmada",
+  },
+  {
+    id: "demo-reservation-03",
+    name: "Sofía Benítez",
+    phone: "3760000003",
+    daysAhead: 4,
+    time: "20:30",
+    guests: 6,
+    notes: "Cumpleaños.",
+    status: "confirmada",
+  },
+];
+
 /** Clientes demo (id = teléfono normalizado). */
 export const SEED_CUSTOMERS = [
   {
@@ -1000,7 +1034,7 @@ export const SEED_ORDERS = [
 
 SEED_CUSTOMERS.forEach((customer) => {
   const customerOrders = SEED_ORDERS.filter((order) => order.phone === customer.phone);
-  customer.totalOrders = customerOrders.length;
+  customer.totalOrders = customerOrders.filter((order) => order.status !== "cancelado").length;
   customer.totalSpent = customerOrders
     .filter((order) => order.status !== "cancelado")
     .reduce((sum, order) => sum + Number(order.total || 0), 0);

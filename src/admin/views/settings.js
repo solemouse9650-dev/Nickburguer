@@ -9,6 +9,12 @@ let settings = structuredClone(DEFAULT_SETTINGS);
 let tab = "negocio";
 let formDirty = false;
 
+window.addEventListener("beforeunload", (event) => {
+  if (!formDirty) return;
+  event.preventDefault();
+  event.returnValue = "";
+});
+
 const DAYS = [
   ["lunes", "Lunes"],
   ["martes", "Martes"],
@@ -48,7 +54,9 @@ export function mountSettings(root) {
     if (formDirty && !confirm("Hay cambios sin guardar. ¿Cambiar de pestaña?")) return;
     tab = btn.dataset.tab;
     formDirty = false;
-    root.querySelectorAll(".tab").forEach((t) => t.classList.toggle("is-active", t === btn));
+    root.querySelectorAll(".tab").forEach((item) => {
+      item.classList.toggle("is-active", item === btn);
+    });
     renderForm(root);
   });
 
@@ -65,6 +73,10 @@ export function unmountSettings() {
   if (unsub) unsub();
   unsub = null;
   formDirty = false;
+}
+
+export function canLeaveSettings() {
+  return !formDirty || confirm("Hay cambios sin guardar. ¿Salir de esta sección?");
 }
 
 function renderForm(root) {

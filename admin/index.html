@@ -63,6 +63,7 @@
         <nav class="sidebar__nav" aria-label="Menú admin">
           <a href="#/dashboard" data-route="dashboard" class="nav-item is-active">Dashboard</a>
           <a href="#/pedidos" data-route="pedidos" class="nav-item">Pedidos</a>
+          <a href="#/reservas" data-route="reservas" class="nav-item">Reservas</a>
           <a href="#/productos" data-route="productos" class="nav-item">Productos</a>
           <a href="#/categorias" data-route="categorias" class="nav-item">Categorías</a>
           <a href="#/promociones" data-route="promociones" class="nav-item">Promociones</a>
@@ -77,10 +78,11 @@
         </nav>
         <button type="button" class="btn btn-ghost btn-block" id="logoutBtn">Cerrar sesión</button>
       </aside>
+      <button type="button" class="sidebar-backdrop" id="sidebarBackdrop" aria-label="Cerrar menú"></button>
 
       <div class="admin-main">
         <header class="topbar">
-          <button type="button" class="icon-btn" id="menuToggle" aria-label="Menú">☰</button>
+          <button type="button" class="icon-btn" id="menuToggle" aria-label="Menú" aria-controls="sidebar" aria-expanded="false">☰</button>
           <h1 id="pageTitle">Dashboard</h1>
           <div class="topbar__user">
             <button type="button" class="icon-btn" id="notifBell" aria-label="Notificaciones" title="Notificaciones">

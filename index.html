@@ -22,15 +22,17 @@
       content="Calidad, sabor y una experiencia hecha para disfrutar. Conocé el menú de Burger Nick."
     />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="/burger-nick-logo.png" />
+    <meta property="og:url" content="https://nick-d259e.web.app/" />
+    <meta property="og:image" content="https://nick-d259e.web.app/burger-nick-logo.png" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Burger Nick | Hamburguesas premium" />
     <meta
       name="twitter:description"
       content="Hamburguesas premium hechas para disfrutar. Pedí online."
     />
-    <meta name="twitter:image" content="/burger-nick-logo.png" />
+    <meta name="twitter:image" content="https://nick-d259e.web.app/burger-nick-logo.png" />
     <title>Burger Nick | Hamburguesas premium — Pedí online</title>
+    <link rel="canonical" href="https://nick-d259e.web.app/" />
     <link rel="icon" type="image/png" href="/burger-nick-logo.png" />
     <link rel="apple-touch-icon" href="/burger-nick-logo.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
@@ -48,12 +50,13 @@
       crossorigin=""
     />
     <link rel="stylesheet" href="css/styles.css" />
-    <script type="application/ld+json">
+    <script type="application/ld+json" id="restaurantSchema">
       {
         "@context": "https://schema.org",
         "@type": "Restaurant",
         "name": "Burger Nick",
-        "image": "/burger-nick-logo.png",
+        "url": "https://nick-d259e.web.app/",
+        "image": "https://nick-d259e.web.app/burger-nick-logo.png",
         "servesCuisine": "Hamburguesas",
         "priceRange": "$$",
         "telephone": "+5493765130819",
@@ -69,8 +72,8 @@
           "https://www.instagram.com/burger.nick_/",
           "https://www.threads.com/@burger.nick_"
         ],
-        "acceptsReservations": "true",
-        "hasMenu": "/#menu"
+        "acceptsReservations": true,
+        "hasMenu": "https://nick-d259e.web.app/#menu"
       }
     </script>
   </head>
@@ -233,8 +236,8 @@
             </p>
           </header>
 
-          <div class="menu__filters" role="tablist" aria-label="Filtrar menú">
-            <button type="button" class="filter-btn is-active" data-filter="all" role="tab" aria-selected="true">
+          <div class="menu__filters" id="menuFilters" role="tablist" aria-label="Filtrar menú">
+            <button type="button" class="filter-btn is-active" data-filter="all" role="tab" aria-selected="true" aria-controls="menuGrid">
               Todo
             </button>
             <button type="button" class="filter-btn" data-filter="burgers" role="tab" aria-selected="false">
@@ -248,7 +251,7 @@
             </button>
           </div>
 
-          <div class="menu__grid" id="menuGrid" aria-live="polite"></div>
+          <div class="menu__grid" id="menuGrid" role="tabpanel" aria-live="polite"></div>
         </div>
       </section>
 
@@ -273,8 +276,7 @@
             <p class="eyebrow">Tu mesa, tu momento</p>
             <h2 class="section__title">Reservá una experiencia Burger Nick</h2>
             <p class="section__lead">
-              Escribinos por WhatsApp con la fecha, el horario y la cantidad de personas.
-              Nuestro equipo confirmará la disponibilidad.
+              Completá tus datos y nuestro equipo confirmará la disponibilidad por WhatsApp.
             </p>
             <ul class="reservations__features">
               <li>Confirmación personalizada</li>
@@ -282,15 +284,36 @@
               <li>Ideal para encuentros y celebraciones</li>
             </ul>
           </div>
-          <div class="reservations__card">
-            <span class="reservations__number">01</span>
-            <p>Elegí tu fecha y horario.</p>
-            <span class="reservations__number">02</span>
-            <p>Indicá cuántas personas son.</p>
-            <span class="reservations__number">03</span>
-            <p>Recibí la confirmación de nuestro equipo.</p>
-            <a class="btn btn--light btn--block" href="https://wa.me/5493765130819?text=Hola%20Burger%20Nick%2C%20quiero%20consultar%20por%20una%20reserva." target="_blank" rel="noopener noreferrer">Consultar disponibilidad</a>
-          </div>
+          <form class="reservations__card reservations__form" id="reservationForm">
+            <div class="form-field">
+              <label for="reservationName">Nombre y apellido</label>
+              <input id="reservationName" name="name" required maxlength="100" autocomplete="name" placeholder="Tu nombre" />
+            </div>
+            <div class="form-field">
+              <label for="reservationPhone">WhatsApp</label>
+              <input id="reservationPhone" name="phone" required inputmode="tel" autocomplete="tel" placeholder="376 513 0819" />
+            </div>
+            <div class="reservations__form-row">
+              <div class="form-field">
+                <label for="reservationDate">Fecha</label>
+                <input id="reservationDate" name="date" type="date" required />
+              </div>
+              <div class="form-field">
+                <label for="reservationTime">Horario</label>
+                <input id="reservationTime" name="time" type="time" required />
+              </div>
+            </div>
+            <div class="form-field">
+              <label for="reservationGuests">Personas</label>
+              <input id="reservationGuests" name="guests" type="number" min="1" max="20" value="2" required />
+            </div>
+            <div class="form-field">
+              <label for="reservationNotes">Observaciones <span>(opcional)</span></label>
+              <textarea id="reservationNotes" name="notes" rows="3" maxlength="500" placeholder="Cumpleaños, silla para niños, accesibilidad..."></textarea>
+            </div>
+            <button class="btn btn--light btn--block" type="submit">Solicitar reserva</button>
+            <p class="form-message" id="reservationMessage" role="status" aria-live="polite"></p>
+          </form>
         </div>
       </section>
 
@@ -429,7 +452,7 @@
                     >
                     ·
                     <a
-                      id="contactFb"
+                      id="contactThreads"
                       href="https://www.threads.com/@burger.nick_?xmt=AQG07ywm8WoDJn94yh7xR0YzUhZHOT_LHABVxYKyFgBzrzw"
                       target="_blank"
                       rel="noopener noreferrer"
@@ -482,7 +505,7 @@
               >IG</a
             >
             <a
-              id="footerFb"
+              id="footerThreads"
               href="https://www.threads.com/@burger.nick_?xmt=AQG07ywm8WoDJn94yh7xR0YzUhZHOT_LHABVxYKyFgBzrzw"
               target="_blank"
               rel="noopener noreferrer"

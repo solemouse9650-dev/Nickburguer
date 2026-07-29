@@ -38,6 +38,7 @@ export const OrderFlow = (() => {
   };
 
   const els = {};
+  let lastCartFocus = null;
 
   function settings() {
     return store.settings || DEFAULT_SETTINGS;
@@ -74,12 +75,16 @@ export const OrderFlow = (() => {
 
   function openCart() {
     cacheEls();
+    lastCartFocus = document.activeElement;
     renderCartDrawer();
     els.cartDrawer?.classList.add("is-open");
     els.cartBackdrop?.classList.add("is-open");
     els.cartDrawer?.setAttribute("aria-hidden", "false");
     els.cartBackdrop?.setAttribute("aria-hidden", "false");
     document.body.classList.add("cart-open");
+    requestAnimationFrame(() => {
+      els.cartDrawer?.querySelector("[data-close-cart]")?.focus();
+    });
   }
 
   function closeCart() {
@@ -88,6 +93,8 @@ export const OrderFlow = (() => {
     els.cartDrawer?.setAttribute("aria-hidden", "true");
     els.cartBackdrop?.setAttribute("aria-hidden", "true");
     document.body.classList.remove("cart-open");
+    if (lastCartFocus instanceof HTMLElement) lastCartFocus.focus();
+    lastCartFocus = null;
   }
 
   function isCartOpen() {
@@ -194,7 +201,13 @@ export const OrderFlow = (() => {
       showToast("Este producto está agotado", "error");
       return;
     }
-    Cart.add(product, 1);
+    if (!Cart.add(product, 1)) {
+      showToast(
+        "Podés combinar hasta 3 productos distintos por pedido. Ajustá cantidades desde el carrito.",
+        "info"
+      );
+      return;
+    }
     showToast(`${product.name} agregado al carrito`, "success");
     // Solo actualiza badge; el drawer se abre únicamente al tocar el ícono
     if (isCartOpen()) renderCartDrawer();
@@ -269,8 +282,12 @@ export const OrderFlow = (() => {
     const couponInput = document.getElementById("oCoupon");
     if (couponInput) couponInput.value = "";
     setCouponMsg("");
-    document.querySelectorAll(".field-error").forEach((el) => (el.textContent = ""));
-    document.querySelectorAll("input.is-invalid").forEach((el) => el.classList.remove("is-invalid"));
+    document.querySelectorAll(".field-error").forEach((element) => {
+      element.textContent = "";
+    });
+    document.querySelectorAll("input.is-invalid").forEach((element) => {
+      element.classList.remove("is-invalid");
+    });
     const pay = document.querySelector('input[name="payment"][value="Mercado Pago"]');
     if (pay) pay.checked = true;
     const pickup = document.querySelector('input[name="delivery"][value="pickup"]');
@@ -726,7 +743,7 @@ export const OrderFlow = (() => {
   }
 
   async function finalize() {
-    const items = cartLines();
+    let items = cartLines();
     if (!items.length) {
       showToast("Tu carrito está vacío", "error");
       close();
@@ -739,6 +756,18 @@ export const OrderFlow = (() => {
     els.btnNext.textContent = "Procesando...";
 
     try {
+      const catalogCheck = Cart.syncWithCatalog(store.products);
+      if (catalogCheck.changed) {
+        items = cartLines();
+        renderCart();
+        renderSummary();
+        const removedText = catalogCheck.removed.length
+          ? ` Se quitaron: ${catalogCheck.removed.join(", ")}.`
+          : "";
+        throw new Error(
+          `El menú cambió desde que armaste el carrito.${removedText} Revisá precios y productos antes de confirmar.`
+        );
+      }
       if (!revalidateAppliedCoupon()) {
         throw new Error("El cupón ya no es válido. Revisalo e intentá de nuevo.");
       }
@@ -792,7 +821,7 @@ export const OrderFlow = (() => {
 
       state.orderNumber = result.orderNumber;
       state.discount = finalDiscount;
-      state.lastOrderItems = lineItems;
+      state.lastOrderItems = result.orderData?.items || lineItems;
       state.lastOrderTotals = {
         subtotal: finalSubtotal,
         deliveryCost: finalDelivery,
@@ -1102,6 +1131,24 @@ export const OrderFlow = (() => {
       if (e.target.name === "delivery" && state.step === 3) syncDeliveryUI();
     });
     document.addEventListener("keydown", (e) => {
+      if (e.key === "Tab" && isCartOpen()) {
+        const focusable = [
+          ...els.cartDrawer.querySelectorAll(
+            'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          ),
+        ];
+        if (focusable.length) {
+          const first = focusable[0];
+          const last = focusable.at(-1);
+          if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
       if (e.key === "Escape") {
         if (els.modal && !els.modal.hidden) close();
         else if (isCartOpen()) closeCart();

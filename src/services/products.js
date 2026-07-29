@@ -3,12 +3,14 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDocs,
+  limit,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
-  setDoc,
   updateDoc,
+  where,
 } from "firebase/firestore";
 import { db } from "../firebase/config.js";
 
@@ -74,9 +76,15 @@ export async function updateProduct(id, data) {
     updatedAt: serverTimestamp(),
   });
 }
-
 export async function deleteProduct(id) {
   await deleteDoc(doc(db, "products", id));
+}
+
+export async function hasProductsInCategory(categorySlug) {
+  const snapshot = await getDocs(
+    query(col, where("category", "==", categorySlug), limit(1))
+  );
+  return !snapshot.empty;
 }
 
 export async function duplicateProduct(product) {
@@ -85,13 +93,5 @@ export async function duplicateProduct(product) {
     ...rest,
     name: `${rest.name} (copia)`,
     available: false,
-  });
-}
-
-export async function setProductDoc(id, data) {
-  await setDoc(doc(db, "products", id), {
-    ...data,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
   });
 }

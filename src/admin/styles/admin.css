@@ -138,6 +138,7 @@ img { max-width: 100%; display: block; }
   background: #070707; border-right: 1px solid var(--line);
   display: flex; flex-direction: column; gap: 1rem;
 }
+.sidebar-backdrop { display: none; }
 .sidebar__brand { display: flex; gap: .7rem; align-items: center; }
 .sidebar__brand img { border-radius: 0; object-fit: contain; }
 .sidebar__brand strong { display: block; }
@@ -419,6 +420,12 @@ tr:hover td { background: rgba(255,255,255,.02); }
     box-shadow: 12px 0 40px rgba(0,0,0,.45);
   }
   .sidebar.is-open { transform: none; }
+  .sidebar-backdrop {
+    position: fixed; inset: 0; z-index: 39; display: block;
+    border: 0; background: rgba(0,0,0,.58); backdrop-filter: blur(2px);
+    opacity: 0; pointer-events: none; transition: opacity .2s ease;
+  }
+  .sidebar.is-open + .sidebar-backdrop { opacity: 1; pointer-events: auto; }
   .topbar__user span { display: none; }
   #menuToggle { display: inline-flex; }
 }

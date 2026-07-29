@@ -7,12 +7,19 @@ import {
   updateCategory,
 } from "../../services/categories.js";
 import { deleteImageByPath, uploadImage } from "../../services/storage.js";
+import { hasProductsInCategory } from "../../services/products.js";
 import { escapeHtml } from "../../utils/format.js";
 import { confirmDialog, showToast } from "../../utils/toast.js";
 
 let unsub = null;
 let categories = [];
 let clickAbort = null;
+let activePreviewUrl = "";
+
+function revokePreview() {
+  if (activePreviewUrl.startsWith("blob:")) URL.revokeObjectURL(activePreviewUrl);
+  activePreviewUrl = "";
+}
 
 export function mountCategories(root) {
   unmountCategories();
@@ -71,8 +78,13 @@ export function mountCategories(root) {
         if (!confirmDialog("¿Eliminar esta categoría?")) return;
         try {
           const cat = categories.find((c) => c.id === del.dataset.del);
-          if (cat?.imagePath) await deleteImageByPath(cat.imagePath);
+          if (cat?.slug && (await hasProductsInCategory(cat.slug))) {
+            throw new Error(
+              "No se puede eliminar: hay productos asignados. Movelos a otra categoría primero."
+            );
+          }
           await deleteCategory(del.dataset.del);
+          if (cat?.imagePath) deleteImageByPath(cat.imagePath).catch(() => {});
           showToast("Categoría eliminada", "success");
         } catch (err) {
           showToast(err.message || "Error", "error");
@@ -104,6 +116,7 @@ export function unmountCategories() {
   clickAbort?.abort();
   clickAbort = null;
   categories = [];
+  revokePreview();
 }
 
 function renderTable(root) {
@@ -144,10 +157,11 @@ function renderTable(root) {
 }
 
 function openForm(root, cat) {
+  revokePreview();
   const host = root.querySelector("#catFormHost");
   let imageFile = null;
   let imagePreview = cat?.imageUrl || "";
-  let imagePath = cat?.imagePath || "";
+  const imagePath = cat?.imagePath || "";
 
   host.innerHTML = `
     <section class="panel">
@@ -179,12 +193,15 @@ function openForm(root, cat) {
     </section>`;
 
   host.querySelector("#cancelCat").onclick = () => {
+    revokePreview();
     host.innerHTML = "";
   };
   host.querySelector("#catImage")?.addEventListener("change", (e) => {
     imageFile = e.target.files?.[0] || null;
     if (imageFile) {
+      revokePreview();
       imagePreview = URL.createObjectURL(imageFile);
+      activePreviewUrl = imagePreview;
       host.querySelector("#catImagePreview").innerHTML =
         `<img class="thumb" style="width:80px;height:80px;object-fit:cover;border-radius:12px" src="${imagePreview}" alt="" />`;
     }
@@ -201,18 +218,27 @@ function openForm(root, cat) {
       imageUrl: cat?.imageUrl || "",
       imagePath: imagePath || "",
     };
+    let uploadedPath = "";
+    let saved = false;
     try {
+      const previousPath = imagePath;
       if (imageFile) {
-        if (imagePath) await deleteImageByPath(imagePath);
         const up = await uploadImage(imageFile, "categories");
         payload.imageUrl = up.url;
         payload.imagePath = up.path;
+        uploadedPath = up.path;
       }
-      if (cat?.id) await updateCategory(cat.id, payload);
+      if (cat?.id) await updateCategory(cat.id, payload, cat.slug);
       else await createCategory(payload);
+      saved = true;
+      if (imageFile && previousPath && previousPath !== payload.imagePath) {
+        deleteImageByPath(previousPath).catch(() => {});
+      }
       showToast("Categoría guardada", "success");
+      revokePreview();
       host.innerHTML = "";
     } catch (err) {
+      if (!saved && uploadedPath) deleteImageByPath(uploadedPath).catch(() => {});
       showToast(err.message || "Error al guardar", "error");
     }
   };

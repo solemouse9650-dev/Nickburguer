@@ -10,6 +10,9 @@ npm run check
 npm run dev
 ```
 
+Las reglas Firestore tienen pruebas de autorización en `tests/firestore.rules.test.mjs`. Para
+ejecutarlas necesitás Java 21 y luego `npm run test:rules`.
+
 - Sitio: http://localhost:5173/
 - Login admin: http://localhost:5173/admin/
 - Dashboard: http://localhost:5173/admin/#/dashboard
@@ -17,12 +20,13 @@ npm run dev
 ## Configuración
 
 1. Copiá `.env.example` a `.env.local`.
-2. Completá Firebase y el UID/email del administrador.
+2. Completá Firebase y el UID/email del administrador. El documento `users/{uid}` debe existir con
+   `role: "admin"`; el frontend no crea ni eleva administradores.
 3. En Firebase Authentication habilitá Email/Password y agregá el dominio de producción.
 4. Publicá reglas e índices antes de iniciar sesión en el panel:
 
 ```bash
-npx firebase-tools deploy --only firestore:rules,firestore:indexes --project nick-d259e
+npx firebase-tools deploy --only firestore:rules,firestore:indexes,storage --project nick-d259e
 ```
 
 La API key web de Firebase termina en el bundle del navegador por diseño. La seguridad depende de
@@ -31,7 +35,7 @@ reglas, dominios autorizados y App Check; nunca uses claves privadas ni contrase
 
 ## Seed demo inicial
 
-Carga productos, promociones, settings, clientes, pedidos y contador únicamente si la base está
+Carga productos, promociones, settings, clientes, pedidos, reservas y contador únicamente si la base está
 vacía. Primero valida referencias, totales, IDs y cupones.
 
 ```bash
@@ -42,13 +46,16 @@ npm run seed
 Remove-Item Env:SEED_PASSWORD
 ```
 
-No pases la contraseña como argumento: quedaría en el historial. También podés iniciar sesión en
-`/admin` y usar “Cargar datos demo”; el panel cancela la carga si detecta datos existentes.
+No pases la contraseña como argumento: quedaría en el historial. En desarrollo también podés usar
+“Cargar datos demo”. Esa opción no se incluye en producción salvo que se configure explícitamente
+`VITE_ALLOW_DEMO_SEED=true`.
 
 ## Deploy
 
 ```bash
 npm run build
+npm run preview
+npm run test:e2e
 npx firebase-tools login
 npx firebase-tools deploy --project nick-d259e
 ```

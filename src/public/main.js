@@ -1,5 +1,7 @@
 import { listenAvailableProducts } from "../services/products.js";
+import { listenCategories } from "../services/categories.js";
 import { listenActivePromotions } from "../services/promotions.js";
+import { createReservation } from "../services/reservations.js";
 import { formatHoursText, listenSettings } from "../services/settings.js";
 import {
   escapeHtml,
@@ -16,6 +18,7 @@ const FALLBACK_IMG = "/burger-nick-logo.png";
 let currentFilter = "all";
 let contactMap = null;
 let contactMarker = null;
+const unsubs = [];
 
 document.addEventListener("DOMContentLoaded", () => {
   setupFilters();
@@ -23,13 +26,16 @@ document.addEventListener("DOMContentLoaded", () => {
   setupNav();
   renderFaq();
   setupContactForm();
+  setupReservationForm();
+  setupLightbox();
+  setupHeroMedia();
   setupReveal();
   setupHeroParallax();
   OrderFlow.bind();
   showMenuLoading();
   showGalleryLoading();
 
-  listenSettings(
+  unsubs.push(listenSettings(
     (settings) => {
       store.settings = settings;
       applySettings(settings);
@@ -37,9 +43,9 @@ document.addEventListener("DOMContentLoaded", () => {
     () => {
       showToast("No se pudo cargar la configuración. Reintentá en unos segundos.", "error");
     }
-  );
+  ));
 
-  listenAvailableProducts(
+  unsubs.push(listenAvailableProducts(
     (products) => {
       store.products = products;
       renderMenu(currentFilter);
@@ -51,14 +57,14 @@ document.addEventListener("DOMContentLoaded", () => {
       if (grid) {
         grid.innerHTML = `<div class="empty-menu">
           No pudimos cargar el menú en este momento.<br />
-          <a class="btn btn--primary btn--sm" style="margin-top:1rem" href="https://wa.me/5493765130819" target="_blank" rel="noopener">Pedir por WhatsApp</a>
+          <a class="btn btn--primary btn--sm" style="margin-top:1rem" href="https://wa.me/${getWhatsAppNumber(store.settings)}" target="_blank" rel="noopener">Pedir por WhatsApp</a>
         </div>`;
       }
       showToast("Error al cargar el menú.", "error");
     }
-  );
+  ));
 
-  listenActivePromotions(
+  unsubs.push(listenActivePromotions(
     (promotions) => {
       store.promotions = promotions;
       renderPromos();
@@ -67,7 +73,26 @@ document.addEventListener("DOMContentLoaded", () => {
       const grid = document.getElementById("promosGrid");
       if (grid) grid.innerHTML = `<div class="empty-menu">Promociones no disponibles por ahora.</div>`;
     }
+  ));
+
+  unsubs.push(
+    listenCategories(
+      (categories) => {
+        store.categories = categories.filter((category) => category.active !== false);
+        renderFilters();
+      },
+      () => renderFilters()
+    )
   );
+});
+
+window.addEventListener("pagehide", () => {
+  unsubs.splice(0).forEach((unsubscribe) => {
+    unsubscribe?.();
+  });
+  contactMap?.remove();
+  contactMap = null;
+  contactMarker = null;
 });
 
 function showMenuLoading() {
@@ -201,9 +226,9 @@ function applySettings(settings) {
     ? "https://www.threads.com/@burger.nick_?xmt=AQG07ywm8WoDJn94yh7xR0YzUhZHOT_LHABVxYKyFgBzrzw"
     : rawThreadsUrl;
   wireSocial("contactIg", instagramUrl);
-  wireSocial("contactFb", threadsUrl);
+  wireSocial("contactThreads", threadsUrl);
   wireSocial("footerIg", instagramUrl);
-  wireSocial("footerFb", threadsUrl);
+  wireSocial("footerThreads", threadsUrl);
   wireLink("footerWa", waUrl);
   wireLink("waFloat", waUrl);
 
@@ -228,7 +253,43 @@ function applySettings(settings) {
     extra.innerHTML = links.join("");
   }
 
+  updateSeo(settings, logoUrl, instagramUrl, threadsUrl);
   initContactMap(storeCfg);
+}
+
+function updateSeo(settings, logoUrl, instagramUrl, threadsUrl) {
+  const origin = window.location.origin;
+  const absoluteImage = new URL(logoUrl || FALLBACK_IMG, origin).href;
+  document.querySelector('link[rel="canonical"]')?.setAttribute("href", `${origin}/`);
+  document.querySelector('meta[property="og:url"]')?.setAttribute("content", `${origin}/`);
+  document.querySelector('meta[property="og:image"]')?.setAttribute("content", absoluteImage);
+  document.querySelector('meta[name="twitter:image"]')?.setAttribute("content", absoluteImage);
+
+  const business = settings.business || {};
+  const schema = document.getElementById("restaurantSchema");
+  if (!schema) return;
+  const address = {
+    "@type": "PostalAddress",
+    streetAddress: business.address || "",
+    addressLocality: business.city || "",
+    addressRegion: business.province || "",
+    postalCode: business.postalCode || "",
+    addressCountry: "AR",
+  };
+  schema.textContent = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Restaurant",
+    name: cleanLegacyText(business.name, "Burger Nick"),
+    url: `${origin}/`,
+    image: absoluteImage,
+    servesCuisine: "Hamburguesas",
+    priceRange: "$$",
+    telephone: `+${getWhatsAppNumber(settings)}`,
+    address,
+    sameAs: [instagramUrl, threadsUrl].filter(Boolean),
+    acceptsReservations: true,
+    hasMenu: `${origin}/#menu`,
+  });
 }
 
 function updateAboutImage(products) {
@@ -286,7 +347,7 @@ function renderMenu(filter) {
   if (!items.length) {
     grid.innerHTML = `<div class="empty-menu">
       Todavía no hay productos en esta categoría.<br />
-      <a class="btn btn--primary btn--sm" style="margin-top:1rem" href="#contacto">Consultar por WhatsApp</a>
+      <a class="btn btn--primary btn--sm" style="margin-top:1rem" href="https://wa.me/${getWhatsAppNumber(store.settings)}" target="_blank" rel="noopener">Consultar por WhatsApp</a>
     </div>`;
     return;
   }
@@ -298,7 +359,7 @@ function renderMenu(filter) {
       if (p.isOnSale) badges.push(`<span class="tag tag--oferta">Oferta</span>`);
       if (p.isTrending) badges.push(`<span class="tag tag--tendencia">Más pedida</span>`);
       if (p.isNew) badges.push(`<span class="tag tag--nueva">Nueva</span>`);
-      if (p.isPremium) badges.push(`<span class="tag tag--premium">Selección</span>`);
+      if (p.isPremium || p.isFeatured) badges.push(`<span class="tag tag--premium">Selección</span>`);
 
       const priceHtml = p.isOnSale
         ? `<span class="product__price product__price--sale">
@@ -364,18 +425,43 @@ function renderGallery(products) {
 }
 
 function setupFilters() {
-  document.querySelectorAll(".filter-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".filter-btn").forEach((b) => {
+  document.getElementById("menuFilters")?.addEventListener("click", (event) => {
+    const btn = event.target.closest(".filter-btn");
+    if (!btn) return;
+    document.querySelectorAll(".filter-btn").forEach((b) => {
         b.classList.remove("is-active");
         b.setAttribute("aria-selected", "false");
-      });
-      btn.classList.add("is-active");
-      btn.setAttribute("aria-selected", "true");
-      currentFilter = btn.dataset.filter;
-      renderMenu(currentFilter);
     });
+    btn.classList.add("is-active");
+    btn.setAttribute("aria-selected", "true");
+    currentFilter = btn.dataset.filter;
+    renderMenu(currentFilter);
   });
+}
+
+function renderFilters() {
+  const host = document.getElementById("menuFilters");
+  if (!host) return;
+  const categories = store.categories.length
+    ? store.categories
+    : [
+        { slug: "burgers", name: "Hamburguesas" },
+        { slug: "sides", name: "Acompañamientos" },
+        { slug: "drinks", name: "Bebidas" },
+      ];
+  if (currentFilter !== "all" && !categories.some((item) => item.slug === currentFilter)) {
+    currentFilter = "all";
+  }
+  host.innerHTML = [
+    { slug: "all", name: "Todo" },
+    ...categories,
+  ]
+    .map(
+      (category) =>
+        `<button type="button" class="filter-btn ${currentFilter === category.slug ? "is-active" : ""}" data-filter="${escapeHtml(category.slug)}" role="tab" aria-selected="${currentFilter === category.slug}" aria-controls="menuGrid">${escapeHtml(category.name)}</button>`
+    )
+    .join("");
+  renderMenu(currentFilter);
 }
 
 function renderPromos() {
@@ -388,13 +474,7 @@ function renderPromos() {
 
   grid.innerHTML = store.promotions
     .map((p) => {
-      const discountLabel =
-        p.discountType === "percent" && p.discountValue
-          ? `${p.discountValue}% OFF`
-          : p.discountType === "fixed" && p.discountValue
-            ? `${formatMoney(p.discountValue)} OFF`
-            : "";
-      const badge = p.badge || discountLabel;
+      const badge = p.badge || "";
       return `
       <article class="promo reveal is-visible">
         ${imgWithFallback(p.imageUrl, p.title)}
@@ -457,6 +537,7 @@ function setupNav() {
   const nav = document.getElementById("nav");
   toggle?.addEventListener("click", () => {
     const open = nav.classList.toggle("is-open");
+    document.body.classList.toggle("nav-open", open);
     toggle.classList.toggle("is-open", open);
     toggle.setAttribute("aria-expanded", String(open));
     toggle.setAttribute("aria-label", open ? "Cerrar menú" : "Abrir menú");
@@ -464,6 +545,7 @@ function setupNav() {
   nav?.querySelectorAll("a").forEach((link) => {
     link.addEventListener("click", () => {
       nav.classList.remove("is-open");
+      document.body.classList.remove("nav-open");
       toggle?.classList.remove("is-open");
       toggle?.setAttribute("aria-expanded", "false");
       toggle?.setAttribute("aria-label", "Abrir menú");
@@ -495,7 +577,9 @@ function setupContactForm() {
     const okName = name.value.trim().length >= 2;
     const okEmail = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.value.trim());
     const okMsg = message.value.trim().length >= 10;
-    [name, email, message].forEach((el) => el.classList.remove("is-invalid"));
+    [name, email, message].forEach((field) => {
+      field.classList.remove("is-invalid");
+    });
     if (!okName) name.classList.add("is-invalid");
     if (!okEmail) email.classList.add("is-invalid");
     if (!okMsg) message.classList.add("is-invalid");
@@ -522,13 +606,92 @@ function setupContactForm() {
   });
 }
 
+function setupReservationForm() {
+  const form = document.getElementById("reservationForm");
+  if (!form) return;
+  const dateInput = form.elements.date;
+  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  dateInput.min = tomorrow;
+  dateInput.value = tomorrow;
+  form.elements.time.value = "21:00";
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = form.querySelector('button[type="submit"]');
+    const message = document.getElementById("reservationMessage");
+    button.disabled = true;
+    message.className = "form-message";
+    message.textContent = "Enviando solicitud...";
+    try {
+      await createReservation({
+        name: form.elements.name.value,
+        phone: form.elements.phone.value,
+        date: form.elements.date.value,
+        time: form.elements.time.value,
+        guests: form.elements.guests.value,
+        notes: form.elements.notes.value,
+      });
+      message.classList.add("is-success");
+      message.textContent =
+        "Solicitud recibida. Te confirmaremos la disponibilidad por WhatsApp.";
+      form.reset();
+      dateInput.value = tomorrow;
+      form.elements.time.value = "21:00";
+      form.elements.guests.value = "2";
+    } catch (error) {
+      message.classList.add("is-error");
+      message.textContent = error.message || "No se pudo enviar la reserva. Intentá nuevamente.";
+    } finally {
+      button.disabled = false;
+    }
+  });
+}
+
+function setupLightbox() {
+  let opener = null;
+  document.getElementById("galleryGrid")?.addEventListener("click", (event) => {
+    const link = event.target.closest(".gallery__item");
+    if (link) opener = link;
+  });
+  window.addEventListener("hashchange", () => {
+    const dialog = location.hash.startsWith("#gal-")
+      ? document.querySelector(location.hash)
+      : null;
+    if (dialog) {
+      dialog.querySelector(".lightbox__close")?.focus();
+    } else if (opener) {
+      opener.focus();
+      opener = null;
+    }
+  });
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && location.hash.startsWith("#gal-")) {
+      location.hash = "galeria";
+    }
+  });
+}
+
+function setupHeroMedia() {
+  const video = document.getElementById("heroVideo");
+  const image = document.getElementById("heroBgImage");
+  video?.addEventListener("error", () => {
+    video.hidden = true;
+    if (image?.src) image.hidden = false;
+  });
+  window.addEventListener("resize", () => contactMap?.invalidateSize(), { passive: true });
+}
+
 function setupReveal() {
   const nodes = document.querySelectorAll(
     ".benefit, .about__media, .about__content, .contact__info, .contact__map-wrap, .reservations__grid, .section__head, .reveal"
   );
-  nodes.forEach((el) => el.classList.add("reveal"));
+  nodes.forEach((node) => {
+    node.classList.add("reveal");
+  });
   if (!("IntersectionObserver" in window)) {
-    nodes.forEach((el) => el.classList.add("is-visible"));
+    nodes.forEach((node) => {
+      node.classList.add("is-visible");
+    });
     return;
   }
   const io = new IntersectionObserver(
@@ -542,7 +705,9 @@ function setupReveal() {
     },
     { threshold: 0.12, rootMargin: "0px 0px -40px 0px" }
   );
-  nodes.forEach((el) => io.observe(el));
+  nodes.forEach((node) => {
+    io.observe(node);
+  });
 }
 
 function setText(id, value) {

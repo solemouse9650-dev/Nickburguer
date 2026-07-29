@@ -108,9 +108,16 @@ export function calcDeliveryCost(distanceKm, settings) {
 
 export function getWhatsAppNumber(settings) {
   const contact = settings?.contact || {};
-  const code = contact.whatsappCountryCode || "54";
-  const phone = normalizePhone(contact.whatsapp || contact.whatsappPrimary || "");
-  return `${code}9${phone}`;
+  const code = normalizePhone(contact.whatsappCountryCode || "54");
+  let phone = normalizePhone(contact.whatsapp || contact.whatsappPrimary || "");
+  if (!phone) return "";
+  phone = phone.replace(/^0+/, "");
+  if (phone.startsWith(`${code}9`)) return phone;
+  if (phone.startsWith(code)) {
+    const local = phone.slice(code.length).replace(/^0+/, "");
+    return `${code}${local.startsWith("9") ? "" : "9"}${local}`;
+  }
+  return `${code}${code === "54" && !phone.startsWith("9") ? "9" : ""}${phone}`;
 }
 
 export function getStatusMessage(settings, status) {

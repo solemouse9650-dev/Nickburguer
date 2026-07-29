@@ -235,11 +235,11 @@ function filtered() {
     if (dateFrom || dateTo) {
       if (!d) return false;
       if (dateFrom) {
-        const from = new Date(dateFrom + "T00:00:00");
+        const from = new Date(`${dateFrom}T00:00:00`);
         if (d < from) return false;
       }
       if (dateTo) {
-        const to = new Date(dateTo + "T23:59:59");
+        const to = new Date(`${dateTo}T23:59:59`);
         if (d > to) return false;
       }
     }

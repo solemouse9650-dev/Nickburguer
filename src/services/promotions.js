@@ -7,7 +7,6 @@ import {
   orderBy,
   query,
   serverTimestamp,
-  setDoc,
   updateDoc,
 } from "firebase/firestore";
 import { db } from "../firebase/config.js";
@@ -93,12 +92,4 @@ export async function updatePromotion(id, data) {
 
 export async function deletePromotion(id) {
   await deleteDoc(doc(db, "promotions", id));
-}
-
-export async function setPromotionDoc(id, data) {
-  await setDoc(doc(db, "promotions", id), {
-    ...data,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
 }

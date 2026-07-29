@@ -1,8 +1,6 @@
 import { listenCustomers } from "../../services/customers.js";
 import { listenOrders } from "../../services/orders.js";
 import { listenProducts } from "../../services/products.js";
-import { listenPromotions } from "../../services/promotions.js";
-import { runSeedClient } from "../../seed/runSeedClient.js";
 import {
   avgTicket,
   categorySalesMap,
@@ -30,6 +28,8 @@ import { showToast } from "../../utils/toast.js";
 
 let unsubs = [];
 let loadError = false;
+const ALLOW_DEMO_SEED =
+  import.meta.env.DEV || import.meta.env.VITE_ALLOW_DEMO_SEED === "true";
 
 export function mountDashboard(root) {
   cleanup();
@@ -39,7 +39,7 @@ export function mountDashboard(root) {
       <div class="panel__head"><h2>Sin permisos de lectura</h2></div>
       <p class="muted">Publicá firestore.rules e índices en Firebase y recargá.</p>
     </div>
-    <div class="panel" id="seedBanner">
+    ${ALLOW_DEMO_SEED ? `<div class="panel" id="seedBanner">
       <div class="panel__head">
         <h2>Datos de demostración</h2>
         <button type="button" class="btn btn-primary" id="runSeedBtn">Cargar datos demo</button>
@@ -48,7 +48,7 @@ export function mountDashboard(root) {
         Disponible únicamente para una base vacía. Carga productos, categorías, promociones,
         cupones, clientes y pedidos ficticios para probar todo el panel sin sobrescribir datos reales.
       </p>
-    </div>
+    </div>` : ""}
 
     <div class="stats-grid stats-grid--dense" id="dashStats">
       ${Array.from({ length: 12 }).map(() => '<div class="skeleton"></div>').join("")}
@@ -95,10 +95,7 @@ export function mountDashboard(root) {
 
   let orders = [];
   let products = [];
-  let promotions = [];
   let customers = [];
-  let gotProducts = false;
-  let gotPromos = false;
 
   const onPermError = (err) => {
     loadError = true;
@@ -109,15 +106,14 @@ export function mountDashboard(root) {
 
   const render = () => {
     if (loadError) return;
-    paint(root, { orders, products, promotions, customers, gotProducts, gotPromos });
+    paint(root, { orders, products, customers });
   };
 
   unsubs.push(listenOrders((d) => { orders = d; render(); }, onPermError));
-  unsubs.push(listenProducts((d) => { products = d; gotProducts = true; render(); }, onPermError));
-  unsubs.push(listenPromotions((d) => { promotions = d; gotPromos = true; render(); }, onPermError));
+  unsubs.push(listenProducts((d) => { products = d; render(); }, onPermError));
   unsubs.push(listenCustomers((d) => { customers = d; render(); }, onPermError));
 
-  root.querySelector("#runSeedBtn")?.addEventListener("click", async () => {
+  if (ALLOW_DEMO_SEED) root.querySelector("#runSeedBtn")?.addEventListener("click", async () => {
     const btn = root.querySelector("#runSeedBtn");
     const confirmed = confirm(
       "Se cargarán datos ficticios en Firebase. Esta acción solo funciona si productos y pedidos están vacíos. ¿Continuar?"
@@ -126,6 +122,7 @@ export function mountDashboard(root) {
     btn.disabled = true;
     btn.textContent = "Cargando demo...";
     try {
+      const { runSeedClient } = await import("../../seed/runSeedClient.js");
       const result = await runSeedClient();
       showToast(
         `Demo lista: ${result.products} productos · ${result.orders} pedidos · ${result.customers} clientes`,
@@ -145,12 +142,14 @@ export function unmountDashboard() {
 }
 
 function cleanup() {
-  unsubs.forEach((u) => u && u());
+  unsubs.forEach((unsubscribe) => {
+    unsubscribe?.();
+  });
   unsubs = [];
   loadError = false;
 }
 
-function paint(root, { orders, products, promotions, customers, gotProducts, gotPromos }) {
+function paint(root, { orders, products, customers }) {
   const todayFrom = startOfDay();
   const todayTo = endOfDay();
   const weekFrom = startOfWeek();

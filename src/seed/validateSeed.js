@@ -5,6 +5,7 @@ import {
   SEED_ORDERS,
   SEED_PRODUCTS,
   SEED_PROMOS,
+  SEED_RESERVATIONS,
 } from "./seedData.js";
 
 const CATEGORY_IDS = new Set(["burgers", "combos", "sides", "drinks", "desserts", "otros"]);
@@ -44,18 +45,21 @@ export function validateSeedData() {
     ["cupones", SEED_COUPONS],
     ["clientes", SEED_CUSTOMERS],
     ["pedidos", SEED_ORDERS],
+    ["reservas", SEED_RESERVATIONS],
   ].forEach(([label, items]) => {
-    duplicates(items.map((item) => item.id)).forEach((id) =>
-      errors.push(`ID duplicado en ${label}: ${id}`)
-    );
+    duplicates(items.map((item) => item.id)).forEach((id) => {
+      errors.push(`ID duplicado en ${label}: ${id}`);
+    });
   });
 
   duplicates(SEED_COUPONS.map((item) => String(item.code || "").toUpperCase())).forEach(
-    (code) => errors.push(`Código de cupón duplicado: ${code}`)
+    (code) => {
+      errors.push(`Código de cupón duplicado: ${code}`);
+    }
   );
-  duplicates(SEED_ORDERS.map((item) => item.orderNumber)).forEach((number) =>
-    errors.push(`Número de pedido duplicado: ${number}`)
-  );
+  duplicates(SEED_ORDERS.map((item) => item.orderNumber)).forEach((number) => {
+    errors.push(`Número de pedido duplicado: ${number}`);
+  });
 
   SEED_PRODUCTS.forEach((product) => {
     if (!product.id || !product.name) errors.push("Hay un producto sin ID o nombre.");
@@ -89,15 +93,33 @@ export function validateSeedData() {
     if (Number(customer.totalOrders) < 0 || Number(customer.totalSpent) < 0) {
       errors.push(`Totales inválidos en cliente ${customer.id}.`);
     }
-    const customerOrders = SEED_ORDERS.filter((order) => order.phone === customer.phone);
+    const customerOrders = SEED_ORDERS.filter(
+      (order) => order.phone === customer.phone && order.status !== "cancelado"
+    );
     const expectedSpent = customerOrders
-      .filter((order) => order.status !== "cancelado")
       .reduce((sum, order) => sum + Number(order.total || 0), 0);
     if (
       Number(customer.totalOrders) !== customerOrders.length ||
       Number(customer.totalSpent) !== expectedSpent
     ) {
       errors.push(`Totales de cliente inconsistentes en ${customer.id}.`);
+    }
+  });
+
+  SEED_RESERVATIONS.forEach((reservation) => {
+    if (
+      !reservation.name
+      || !validPhone(reservation.phone)
+      || !Number.isInteger(Number(reservation.daysAhead))
+      || Number(reservation.daysAhead) < 1
+      || !/^\d{2}:\d{2}$/.test(reservation.time || "")
+      || Number(reservation.guests) < 1
+      || Number(reservation.guests) > 20
+      || !["pendiente", "confirmada", "completada", "cancelada"].includes(
+        reservation.status
+      )
+    ) {
+      errors.push(`Reserva inválida: ${reservation.id}`);
     }
   });
 
@@ -172,6 +194,7 @@ export function validateSeedData() {
       coupons: SEED_COUPONS.length,
       customers: SEED_CUSTOMERS.length,
       orders: SEED_ORDERS.length,
+      reservations: SEED_RESERVATIONS.length,
     },
   };
 }

@@ -135,7 +135,9 @@ export function mountReports(root) {
 }
 
 export function unmountReports() {
-  unsubs.forEach((u) => u && u());
+  unsubs.forEach((unsubscribe) => {
+    unsubscribe?.();
+  });
   unsubs = [];
   orders = [];
   products = [];

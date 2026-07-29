@@ -8,7 +8,6 @@ import {
   query,
   serverTimestamp,
   setDoc,
-  updateDoc,
 } from "firebase/firestore";
 import { auth, db } from "../firebase/config.js";
 import { DEFAULT_SETTINGS } from "../services/settings.js";
@@ -20,6 +19,7 @@ import {
   SEED_ORDERS,
   SEED_PRODUCTS,
   SEED_PROMOS,
+  SEED_RESERVATIONS,
 } from "./seedData.js";
 import { assertValidSeedData } from "./validateSeed.js";
 
@@ -114,9 +114,26 @@ export async function runSeedClient() {
     );
   }
 
+  for (const reservation of SEED_RESERVATIONS) {
+    const { id, daysAhead, ...data } = reservation;
+    const date = new Date();
+    date.setDate(date.getDate() + Number(daysAhead || 1));
+    await setDoc(
+      doc(db, "reservations", id),
+      {
+        ...data,
+        date: date.toISOString().slice(0, 10),
+        source: "demo",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  }
+
   for (const c of SEED_CUSTOMERS) {
     const { id, ...data } = c;
-    const desiredTotalOrders = Math.max(1, Number(data.totalOrders || 1));
+    const desiredTotalOrders = Math.max(0, Number(data.totalOrders || 0));
     const customerDates = SEED_ORDERS.filter((order) => order.phone === id)
       .map((order) => demoDate(order))
       .sort((a, b) => a - b);
@@ -127,7 +144,7 @@ export async function runSeedClient() {
       {
         ...data,
         phone: id,
-        totalOrders: 1,
+        totalOrders: desiredTotalOrders,
         registeredAt: firstPurchase,
         firstPurchaseAt: firstPurchase,
         lastPurchaseAt: lastPurchase,
@@ -135,12 +152,6 @@ export async function runSeedClient() {
       },
       { merge: true }
     );
-    if (desiredTotalOrders > 1) {
-      await updateDoc(doc(db, "customers", id), {
-        totalOrders: desiredTotalOrders,
-        updatedAt: serverTimestamp(),
-      });
-    }
   }
 
   let maxCounter = 0;
@@ -196,5 +207,6 @@ export async function runSeedClient() {
 
   return {
     ...validation.counts,
+    reservations: SEED_RESERVATIONS.length,
   };
 }

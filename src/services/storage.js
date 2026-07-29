@@ -31,32 +31,6 @@ async function compressImage(file, maxWidth = 1400, quality = 0.82) {
   });
 }
 
-function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ""));
-    reader.onerror = () => reject(new Error("No se pudo leer la imagen."));
-    reader.readAsDataURL(file);
-  });
-}
-
-async function createFirestoreFallback(file) {
-  const attempts = [
-    [900, 0.72],
-    [700, 0.62],
-    [520, 0.52],
-  ];
-  for (const [width, quality] of attempts) {
-    const optimized = await compressImage(file, width, quality);
-    if (optimized.size <= 300 * 1024) {
-      return fileToDataUrl(optimized);
-    }
-  }
-  throw new Error(
-    "Firebase Storage no está habilitado y la imagen es demasiado pesada para el modo compatible."
-  );
-}
-
 /**
  * Sube una imagen optimizada a Firebase Storage.
  * @param {File} file
@@ -85,10 +59,12 @@ export async function uploadImage(file, folder = "products") {
     const url = await getDownloadURL(objectRef);
     return { url, path };
   } catch (error) {
-    // Mientras el bucket no esté habilitado, Firestore conserva una versión liviana.
-    // La escritura final sigue protegida por las reglas admin de cada colección.
-    const url = await createFirestoreFallback(file);
-    return { url, path: "", fallback: true, storageError: error?.code || "storage/error" };
+    const failure = new Error(
+      "No se pudo subir la imagen a Firebase Storage. Verificá que el bucket esté habilitado y que las reglas estén desplegadas."
+    );
+    failure.code = error?.code || "storage/upload-failed";
+    failure.cause = error;
+    throw failure;
   }
 }
 

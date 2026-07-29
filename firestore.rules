@@ -11,44 +11,125 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    function isBootstrapAdmin() {
-      return isSignedIn()
-        && request.auth.uid == 'cm50EaIxcgdzWhb1XEsuo6PVkzN2';
-    }
-
     function validShortString(value, maxLength) {
       return value is string && value.size() > 0 && value.size() <= maxLength;
     }
 
-    function counterMatchesCreatedOrder() {
-      let orderId = request.resource.data.get('lastOrderId', '');
-      let orderNumber = request.resource.data.get('lastOrderNumber', '');
+    function createdOrder(orderId) {
       return validShortString(orderId, 128)
-        && validShortString(orderNumber, 40)
         && existsAfter(/databases/$(database)/documents/orders/$(orderId))
-        && getAfter(/databases/$(database)/documents/orders/$(orderId)).data.id == orderId
-        && getAfter(/databases/$(database)/documents/orders/$(orderId)).data.orderNumber == orderNumber;
+        && getAfter(/databases/$(database)/documents/orders/$(orderId)).data.id == orderId;
     }
 
-    function orderMatchesCounter() {
-      return existsAfter(/databases/$(database)/documents/counters/orders)
-        && getAfter(/databases/$(database)/documents/counters/orders).data.lastOrderId
-          == request.resource.data.id
-        && getAfter(/databases/$(database)/documents/counters/orders).data.lastOrderNumber
-          == request.resource.data.orderNumber;
+    function validOrderItem(item) {
+      let productId = item.get('productId', '');
+      let productPath = /databases/$(database)/documents/products/$(productId);
+      let product = get(productPath).data;
+      return item is map
+        && validShortString(productId, 128)
+        && product != null
+        && product.get('active', true) == true
+        && product.get('available', true) == true
+        && product.get('soldOut', false) == false
+        && item.get('quantity', 0) is int
+        && item.get('quantity', 0) >= 1
+        && item.get('quantity', 0) <= 20
+        && item.get('unitPrice', -1) is number
+        && item.get('unitPrice', -1) == (
+          product.get('isOnSale', false) == true
+            && product.get('salePrice', 0) is number
+            && product.get('salePrice', 0) > 0
+          ? product.get('salePrice', 0)
+          : product.get('price', 0)
+        );
+    }
+
+    function validItemAt(items, index) {
+      return items.size() <= index || validOrderItem(items[index]);
+    }
+
+    function itemTotalAt(items, index) {
+      return items.size() <= index
+        ? 0
+        : items[index].get('unitPrice', 0) * items[index].get('quantity', 0);
+    }
+
+    function validOrderAmounts() {
+      let items = request.resource.data.items;
+      let expectedSubtotal = itemTotalAt(items, 0)
+        + itemTotalAt(items, 1)
+        + itemTotalAt(items, 2);
+      return request.resource.data.get('subtotal', -1) is number
+        && request.resource.data.subtotal == expectedSubtotal
+        && request.resource.data.get('deliveryCost', -1) is number
+        && request.resource.data.deliveryCost >= 0
+        && request.resource.data.deliveryCost <= 100000
+        && request.resource.data.get('discount', -1) is number
+        && request.resource.data.discount >= 0
+        && request.resource.data.discount <= expectedSubtotal
+        && request.resource.data.total
+          == expectedSubtotal + request.resource.data.deliveryCost - request.resource.data.discount;
+    }
+
+    function validCouponAmount() {
+      let couponId = request.resource.data.get('couponId', '');
+      let couponPath = /databases/$(database)/documents/coupons/$(couponId);
+      let coupon = get(couponPath).data;
+      return (couponId == null || couponId == '')
+        ? request.resource.data.discount == 0
+        : (
+          coupon != null
+          && coupon.get('active', true) == true
+          && request.resource.data.subtotal
+            >= coupon.get('minOrderAmount', 0)
+          && (
+            coupon.get('type', 'percent') == 'fixed'
+              ? request.resource.data.discount
+                <= coupon.get('value', 0)
+              : request.resource.data.discount
+                <= (
+                  (
+                    request.resource.data.subtotal
+                    + (
+                      coupon.get('applyToShipping', false) == true
+                        ? request.resource.data.deliveryCost
+                        : 0
+                    )
+                  )
+                  * coupon.get('value', 0) / 100
+                ) + 1
+          )
+          && (
+            coupon.get('maxDiscount', null) == null
+            || request.resource.data.discount
+              <= coupon.get('maxDiscount', 0)
+          )
+          && (
+            coupon.get('freeShipping', false) != true
+            || request.resource.data.deliveryCost == 0
+          )
+        );
+    }
+
+    function couponMatchesCreatedOrder(couponId) {
+      let orderId = request.resource.data.get('lastOrderId', '');
+      return createdOrder(orderId)
+        && getAfter(/databases/$(database)/documents/orders/$(orderId)).data.get('couponId', '')
+          == couponId;
+    }
+
+    function customerMatchesCreatedOrder(customerId, previousOrders, previousSpent) {
+      let orderId = request.resource.data.get('lastOrderId', '');
+      return createdOrder(orderId)
+        && getAfter(/databases/$(database)/documents/orders/$(orderId)).data.phone == customerId
+        && request.resource.data.totalOrders == previousOrders + 1
+        && request.resource.data.totalSpent == previousSpent
+          + getAfter(/databases/$(database)/documents/orders/$(orderId)).data.total;
     }
 
     match /users/{userId} {
       allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow create: if isBootstrapAdmin()
-        && request.auth.uid == userId
-        && request.resource.data.role == 'admin';
-      allow update: if isAdmin()
-        || (
-          isBootstrapAdmin()
-          && request.auth.uid == userId
-          && request.resource.data.role == 'admin'
-        );
+      allow create, update: if isAdmin();
       allow delete: if isAdmin();
     }
 
@@ -72,7 +153,9 @@ service cloud.firestore {
       allow create, delete: if isAdmin();
       // Admin edita todo; clientes solo pueden sumar 1 uso al aplicar el cupón
       allow update: if isAdmin() || (
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usedCount', 'updatedAt'])
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'usedCount', 'lastOrderId', 'updatedAt'
+        ])
         && request.resource.data.usedCount is number
         && request.resource.data.usedCount == resource.data.get('usedCount', 0) + 1
         && resource.data.get('active', true) == true
@@ -81,6 +164,7 @@ service cloud.firestore {
           || resource.data.maxUses == null
           || request.resource.data.usedCount <= resource.data.maxUses
         )
+        && couponMatchesCreatedOrder(couponId)
       );
     }
 
@@ -101,14 +185,18 @@ service cloud.firestore {
         && request.resource.data.phone.matches('^[0-9]{8,15}$')
         && request.resource.data.items is list
         && request.resource.data.items.size() > 0
-        && request.resource.data.items.size() <= 50
+        && request.resource.data.items.size() <= 3
+        && validItemAt(request.resource.data.items, 0)
+        && validItemAt(request.resource.data.items, 1)
+        && validItemAt(request.resource.data.items, 2)
+        && validOrderAmounts()
+        && validCouponAmount()
         && validShortString(request.resource.data.get('firstName', ''), 80)
         && validShortString(request.resource.data.get('lastName', ''), 80)
         && request.resource.data.get('email', '') is string
         && request.resource.data.get('email', '').size() <= 160
         && request.resource.data.get('notes', '') is string
         && request.resource.data.get('notes', '').size() <= 1000
-        && orderMatchesCounter()
       );
       allow update, delete: if isAdmin();
     }
@@ -120,51 +208,61 @@ service cloud.firestore {
         request.resource.data.phone is string
         && request.resource.data.phone == customerId
         && request.resource.data.phone.matches('^[0-9]{8,15}$')
-        && request.resource.data.totalOrders == 1
         && request.resource.data.totalSpent is number
         && request.resource.data.totalSpent >= 0
         && request.resource.data.totalSpent <= 100000000
         && request.resource.data.keys().hasOnly([
           'id', 'firstName', 'lastName', 'email', 'address', 'phone', 'status',
           'updatedAt', 'lastPurchaseAt', 'totalOrders', 'totalSpent',
-          'firstPurchaseAt', 'registeredAt'
+          'firstPurchaseAt', 'registeredAt', 'lastOrderId'
         ])
+        && customerMatchesCreatedOrder(customerId, 0, 0)
       );
       // Checkout público: incrementar pedidos/gasto sin leer el doc antes
       allow update: if isAdmin() || (
         request.resource.data.phone == resource.data.phone
         && request.resource.data.phone == customerId
         && request.resource.data.totalOrders is number
-        && request.resource.data.totalOrders == resource.data.get('totalOrders', 0) + 1
         && request.resource.data.totalSpent is number
         && request.resource.data.totalSpent >= resource.data.get('totalSpent', 0)
         && request.resource.data.totalSpent - resource.data.get('totalSpent', 0) <= 100000000
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'firstName', 'lastName', 'email', 'address', 'phone', 'status',
-          'updatedAt', 'lastPurchaseAt', 'totalOrders', 'totalSpent'
+          'updatedAt', 'lastPurchaseAt', 'totalOrders', 'totalSpent', 'lastOrderId'
         ])
+        && customerMatchesCreatedOrder(
+          customerId,
+          resource.data.get('totalOrders', 0),
+          resource.data.get('totalSpent', 0)
+        )
       );
       allow delete: if isAdmin();
     }
 
     match /counters/{counterId} {
-      allow read: if true;
-      allow create: if isAdmin() || (
-        request.resource.data.value is number
-        && request.resource.data.value >= 0
-        && request.resource.data.value <= 10000000
-        && counterMatchesCreatedOrder()
-      );
-      allow update: if isAdmin() || (
-        request.resource.data.value is number
-        && request.resource.data.value == resource.data.value + 1
-        && request.resource.data.value <= 10000000
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'value', 'lastOrderId', 'lastOrderNumber', 'updatedAt'
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    match /reservations/{reservationId} {
+      allow read, update, delete: if isAdmin();
+      allow create: if request.resource.data.keys().hasOnly([
+          'name', 'phone', 'date', 'time', 'guests', 'notes', 'status',
+          'source', 'createdAt', 'updatedAt'
         ])
-        && counterMatchesCreatedOrder()
-      );
-      allow delete: if isAdmin();
+        && validShortString(request.resource.data.name, 100)
+        && request.resource.data.phone is string
+        && request.resource.data.phone.matches('^[0-9]{8,15}$')
+        && request.resource.data.date is string
+        && request.resource.data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && request.resource.data.time is string
+        && request.resource.data.time.matches('^[0-9]{2}:[0-9]{2}$')
+        && request.resource.data.guests is int
+        && request.resource.data.guests >= 1
+        && request.resource.data.guests <= 20
+        && request.resource.data.notes is string
+        && request.resource.data.notes.size() <= 500
+        && request.resource.data.status == 'pendiente'
+        && request.resource.data.source == 'web';
     }
   }
 }

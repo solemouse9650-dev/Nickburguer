@@ -5,7 +5,7 @@ import {
   updatePromotion,
 } from "../../services/promotions.js";
 import { deleteImageByPath, uploadImage } from "../../services/storage.js";
-import { escapeHtml, formatDate, formatMoney } from "../../utils/format.js";
+import { escapeHtml, formatDate } from "../../utils/format.js";
 import { confirmDialog, showToast } from "../../utils/toast.js";
 
 function toInputDate(value) {
@@ -32,6 +32,11 @@ let imageFile = null;
 let imagePreview = "";
 let imagePath = "";
 let clickAbort = null;
+
+function revokeImagePreview() {
+  if (imagePreview.startsWith("blob:")) URL.revokeObjectURL(imagePreview);
+  imagePreview = "";
+}
 
 export function mountPromotions(root) {
   unmountPromotions();
@@ -83,8 +88,8 @@ export function mountPromotions(root) {
         if (!confirmDialog("¿Eliminar esta promoción?")) return;
         try {
           const p = promos.find((x) => x.id === del.dataset.del);
-          if (p?.imagePath) await deleteImageByPath(p.imagePath);
           await deletePromotion(del.dataset.del);
+          if (p?.imagePath) deleteImageByPath(p.imagePath).catch(() => {});
           showToast("Promoción eliminada", "success");
         } catch (err) {
           showToast(err.message || "Error al eliminar", "error");
@@ -103,7 +108,7 @@ export function unmountPromotions() {
   promos = [];
   editing = null;
   imageFile = null;
-  imagePreview = "";
+  revokeImagePreview();
   imagePath = "";
 }
 
@@ -140,6 +145,7 @@ function renderTable(root) {
 }
 
 function openForm(root, promo) {
+  revokeImagePreview();
   editing = promo;
   imageFile = null;
   imagePreview = promo?.imageUrl || "";
@@ -182,12 +188,14 @@ function openForm(root, promo) {
   dz.addEventListener("click", () => input.click());
   input.addEventListener("change", () => {
     if (input.files?.[0]) {
+      revokeImagePreview();
       imageFile = input.files[0];
       imagePreview = URL.createObjectURL(imageFile);
       dz.innerHTML = `<img src="${imagePreview}" alt="" />`;
     }
   });
   host.querySelector("#cancelPromo").addEventListener("click", () => {
+    revokeImagePreview();
     host.innerHTML = "";
   });
   host.querySelector("#promoForm").addEventListener("submit", async (e) => {
@@ -195,14 +203,16 @@ function openForm(root, promo) {
     const form = e.target;
     const btn = form.querySelector('button[type="submit"]');
     btn.disabled = true;
+    let uploadedPath = "";
+    let saved = false;
     try {
       let imageUrl = imagePreview.startsWith("blob:") ? editing?.imageUrl || "" : imagePreview;
       let nextPath = imagePath;
       if (imageFile) {
         const up = await uploadImage(imageFile, "promotions");
-        if (editing?.imagePath) await deleteImageByPath(editing.imagePath);
         imageUrl = up.url;
         nextPath = up.path;
+        uploadedPath = up.path;
       }
       const payload = {
         title: form.title.value.trim(),
@@ -219,9 +229,15 @@ function openForm(root, promo) {
       };
       if (editing?.id) await updatePromotion(editing.id, payload);
       else await createPromotion(payload);
+      saved = true;
+      if (imageFile && editing?.imagePath && editing.imagePath !== nextPath) {
+        deleteImageByPath(editing.imagePath).catch(() => {});
+      }
       showToast("Promoción guardada", "success");
+      revokeImagePreview();
       host.innerHTML = "";
     } catch (err) {
+      if (!saved && uploadedPath) deleteImageByPath(uploadedPath).catch(() => {});
       showToast(err.message || "Error al guardar", "error");
     } finally {
       btn.disabled = false;

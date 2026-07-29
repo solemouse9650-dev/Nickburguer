@@ -1,4 +1,5 @@
 import { listenOrders } from "../../services/orders.js";
+import { listenReservations } from "../../services/reservations.js";
 import { listenProducts } from "../../services/products.js";
 import { listenPromotions } from "../../services/promotions.js";
 import { buildNotifications } from "../../services/notifications.js";
@@ -12,19 +13,20 @@ export function mountNotifications(root) {
   root.innerHTML = `
     <section class="panel">
       <div class="panel__head"><h2>Centro de notificaciones</h2></div>
-      <p class="muted" style="margin-top:0">Alertas en vivo: pedidos nuevos, stock agotado y promociones vencidas.</p>
+      <p class="muted" style="margin-top:0">Alertas en vivo: pedidos, reservas, stock y promociones.</p>
       <div id="notifList"><div class="skeleton"></div></div>
     </section>
   `;
 
   let orders = [];
+  let reservations = [];
   let products = [];
   let promotions = [];
 
   const paint = () => {
     const list = root.querySelector("#notifList");
     if (!list) return;
-    const alerts = buildNotifications({ orders, products, promotions });
+    const alerts = buildNotifications({ orders, reservations, products, promotions });
     if (!alerts.length) {
       list.innerHTML = '<div class="empty">Sin alertas por ahora. El panel está al día.</div>';
       return;
@@ -43,11 +45,14 @@ export function mountNotifications(root) {
   };
 
   unsubs.push(listenOrders((d) => { orders = d; paint(); }, (e) => showToast(e.message, "error")));
+  unsubs.push(listenReservations((d) => { reservations = d; paint(); }));
   unsubs.push(listenProducts((d) => { products = d; paint(); }));
   unsubs.push(listenPromotions((d) => { promotions = d; paint(); }));
 }
 
 export function unmountNotifications() {
-  unsubs.forEach((u) => u && u());
+  unsubs.forEach((unsubscribe) => {
+    unsubscribe?.();
+  });
   unsubs = [];
 }

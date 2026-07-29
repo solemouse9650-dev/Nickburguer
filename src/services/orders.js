@@ -1,33 +1,53 @@
 import {
   collection,
-  deleteDoc,
   doc,
-  getDoc,
+  increment,
   onSnapshot,
   orderBy,
   query,
   runTransaction,
   serverTimestamp,
   Timestamp,
-  updateDoc,
   where,
 } from "firebase/firestore";
 import { db } from "../firebase/config.js";
-import { normalizeOrderStatus, normalizePhone } from "../utils/format.js";
-import { upsertCustomerFromOrder } from "./customers.js";
+import {
+  normalizeOrderStatus,
+  normalizePhone,
+  productUnitPrice,
+} from "../utils/format.js";
 import { calcCouponDiscount, validateCoupon } from "./coupons.js";
 
 const col = collection(db, "orders");
 
 export function listenOrders(callback, onError) {
-  const q = query(col, orderBy("createdAt", "desc"));
-  return onSnapshot(
-    q,
-    (snap) => {
-      callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-    },
-    onError
-  );
+  let activeUnsub = () => {};
+  const attach = (useFallback) => {
+    const target = useFallback ? col : query(col, orderBy("createdAt", "desc"));
+    activeUnsub = onSnapshot(
+      target,
+      (snap) => {
+        const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        if (useFallback) {
+          items.sort(
+            (a, b) =>
+              (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0)
+          );
+        }
+        callback(items);
+      },
+      (error) => {
+        if (!useFallback && error?.code === "failed-precondition") {
+          activeUnsub();
+          attach(true);
+          return;
+        }
+        onError?.(error);
+      }
+    );
+  };
+  attach(false);
+  return () => activeUnsub();
 }
 
 export function listenOrdersByPhone(phone, callback, onError) {
@@ -95,6 +115,10 @@ export async function updateOrderStatus(id, status) {
       const total = Math.max(0, Number(order.total || 0));
       const currentSpent = Math.max(0, Number(customer.totalSpent || 0));
       tx.update(customerRef, {
+        totalOrders: Math.max(
+          0,
+          Number(customer.totalOrders || 0) + (next === "cancelado" ? -1 : 1)
+        ),
         totalSpent:
           next === "cancelado"
             ? Math.max(0, currentSpent - total)
@@ -135,6 +159,10 @@ export async function updateOrder(id, data) {
       normalizeOrderStatus(rest.status ?? previous.status) === "cancelado"
         ? 0
         : Math.max(0, Number(rest.total ?? previous.total ?? 0));
+    const previousOrderCount =
+      normalizeOrderStatus(previous.status) === "cancelado" ? 0 : 1;
+    const nextOrderCount =
+      normalizeOrderStatus(rest.status ?? previous.status) === "cancelado" ? 0 : 1;
 
     tx.update(orderRef, {
       ...rest,
@@ -145,6 +173,10 @@ export async function updateOrder(id, data) {
     if (previousPhone && previousPhone === nextPhone && previousCustomerSnapshot?.exists()) {
       const customer = previousCustomerSnapshot.data();
       tx.update(previousCustomerRef, {
+        totalOrders: Math.max(
+          0,
+          Number(customer.totalOrders || 0) - previousOrderCount + nextOrderCount
+        ),
         totalSpent: Math.max(
           0,
           Number(customer.totalSpent || 0) - previousContribution + nextContribution
@@ -155,7 +187,10 @@ export async function updateOrder(id, data) {
       if (previousCustomerRef && previousCustomerSnapshot?.exists()) {
         const customer = previousCustomerSnapshot.data();
         tx.update(previousCustomerRef, {
-          totalOrders: Math.max(0, Number(customer.totalOrders || 0) - 1),
+          totalOrders: Math.max(
+            0,
+            Number(customer.totalOrders || 0) - previousOrderCount
+          ),
           totalSpent: Math.max(
             0,
             Number(customer.totalSpent || 0) - previousContribution
@@ -177,7 +212,7 @@ export async function updateOrder(id, data) {
             email: rest.email || customer.email || "",
             address: rest.address || customer.address || "",
             status: customer.status || "Activo",
-            totalOrders: Number(customer.totalOrders || 0) + 1,
+            totalOrders: Number(customer.totalOrders || 0) + nextOrderCount,
             totalSpent: Number(customer.totalSpent || 0) + nextContribution,
             registeredAt: customer.registeredAt || serverTimestamp(),
             firstPurchaseAt: customer.firstPurchaseAt || serverTimestamp(),
@@ -192,7 +227,29 @@ export async function updateOrder(id, data) {
 }
 
 export async function deleteOrder(id) {
-  await deleteDoc(doc(db, "orders", id));
+  const orderRef = doc(db, "orders", id);
+  await runTransaction(db, async (tx) => {
+    const orderSnapshot = await tx.get(orderRef);
+    if (!orderSnapshot.exists()) return;
+    const order = orderSnapshot.data();
+    const isCancelled = normalizeOrderStatus(order.status) === "cancelado";
+    const phone = normalizePhone(order.phone);
+    const customerRef = phone ? doc(db, "customers", phone) : null;
+    const customerSnapshot = customerRef ? await tx.get(customerRef) : null;
+
+    tx.delete(orderRef);
+    if (!isCancelled && customerRef && customerSnapshot?.exists()) {
+      const customer = customerSnapshot.data();
+      tx.update(customerRef, {
+        totalOrders: Math.max(0, Number(customer.totalOrders || 0) - 1),
+        totalSpent: Math.max(
+          0,
+          Number(customer.totalSpent || 0) - Math.max(0, Number(order.total || 0))
+        ),
+        updatedAt: serverTimestamp(),
+      });
+    }
+  });
 }
 
 /**
@@ -200,20 +257,45 @@ export async function deleteOrder(id) {
  */
 export async function createOrderFromCheckout(payload) {
   const year = new Date().getFullYear();
-  const counterRef = doc(db, "counters", "orders");
   const orderRef = doc(col);
 
   const result = await runTransaction(db, async (tx) => {
-    const counterSnap = await tx.get(counterRef);
-    const current = counterSnap.exists() ? Number(counterSnap.data().value || 0) : 0;
-    const next = current + 1;
-    const orderNumber = `BN-${year}-${String(next).padStart(6, "0")}`;
+    const orderNumber = `BN-${year}-${orderRef.id.slice(0, 8).toUpperCase()}`;
 
-    let couponId = payload.couponId || null;
+    const couponId = payload.couponId || null;
     let couponCode = payload.couponCode || "";
-    let discount = Number(payload.discount || 0);
+    let discount = 0;
     let deliveryCost = Number(payload.deliveryCost || 0);
-    const subtotal = Math.max(0, Number(payload.subtotal || 0));
+    const requestedItems = Array.isArray(payload.items) ? payload.items : [];
+    if (!requestedItems.length || requestedItems.length > 3) {
+      throw new Error("El pedido debe tener entre 1 y 3 productos distintos.");
+    }
+    const productSnapshots = await Promise.all(
+      requestedItems.map((item) => tx.get(doc(db, "products", String(item.productId || ""))))
+    );
+    const items = requestedItems.map((item, index) => {
+      const snapshot = productSnapshots[index];
+      if (!snapshot.exists()) throw new Error("Uno de los productos ya no existe.");
+      const product = { id: snapshot.id, ...snapshot.data() };
+      if (product.active === false || product.available === false || product.soldOut === true) {
+        throw new Error(`${product.name || "Un producto"} ya no está disponible.`);
+      }
+      const quantity = Number(item.quantity || 0);
+      if (!Number.isInteger(quantity) || quantity < 1 || quantity > 20) {
+        throw new Error("La cantidad de un producto no es válida.");
+      }
+      return {
+        productId: product.id,
+        name: String(product.name || item.name || "Producto"),
+        quantity,
+        unitPrice: productUnitPrice(product),
+        category: String(product.category || ""),
+      };
+    });
+    const subtotal = items.reduce(
+      (sum, item) => sum + item.unitPrice * item.quantity,
+      0
+    );
 
     if (couponId) {
       const couponRef = doc(db, "coupons", couponId);
@@ -243,26 +325,15 @@ export async function createOrderFromCheckout(payload) {
       const used = Number(coupon.usedCount || 0);
       tx.update(couponRef, {
         usedCount: used + 1,
+        lastOrderId: orderRef.id,
         updatedAt: serverTimestamp(),
       });
     } else {
-      discount = Math.max(0, discount);
       deliveryCost = Math.max(0, deliveryCost);
     }
 
     // Siempre recalcular: no confiar en un total del cliente desfasado
     const total = Math.max(0, subtotal + deliveryCost - discount);
-
-    tx.set(
-      counterRef,
-      {
-        value: next,
-        lastOrderId: orderRef.id,
-        lastOrderNumber: orderNumber,
-        updatedAt: serverTimestamp(),
-      },
-      { merge: true }
-    );
 
     const {
       deliveryCostBeforeCoupon: _drop,
@@ -275,6 +346,7 @@ export async function createOrderFromCheckout(payload) {
       orderNumber,
       phone: normalizePhone(payload.phone),
       status: "pendiente",
+      items,
       subtotal,
       deliveryCost,
       discount,
@@ -287,28 +359,27 @@ export async function createOrderFromCheckout(payload) {
     };
 
     tx.set(orderRef, orderData);
+    const customerPhone = normalizePhone(payload.phone);
+    const customerRef = doc(db, "customers", customerPhone);
+    tx.set(
+      customerRef,
+      {
+        id: customerPhone,
+        phone: customerPhone,
+        firstName: String(payload.firstName || "").trim(),
+        lastName: String(payload.lastName || "").trim(),
+        email: String(payload.email || "").trim(),
+        address: String(payload.address || "").trim(),
+        totalOrders: increment(1),
+        totalSpent: increment(total),
+        lastOrderId: orderRef.id,
+        lastPurchaseAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
     return { orderNumber, orderId: orderRef.id, orderData, total, discount, deliveryCost };
   });
 
-  // El pedido ya quedó guardado. El upsert de cliente no debe romper la confirmación.
-  try {
-    await upsertCustomerFromOrder({
-      firstName: payload.firstName,
-      lastName: payload.lastName,
-      phone: payload.phone,
-      email: payload.email || "",
-      address: payload.address || "",
-      total: result.total ?? payload.total,
-    });
-  } catch (err) {
-    console.warn("[orders] upsertCustomerFromOrder falló (pedido ya guardado):", err?.code || err?.message || err);
-  }
-
   return result;
-}
-
-export async function getOrder(id) {
-  const snap = await getDoc(doc(db, "orders", id));
-  if (!snap.exists()) return null;
-  return { id: snap.id, ...snap.data() };
 }

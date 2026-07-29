@@ -1,7 +1,12 @@
 /**
- * Genera alertas operativas reales a partir de pedidos, productos y promociones.
+ * Genera alertas operativas reales a partir de pedidos, reservas, productos y promociones.
  */
-export function buildNotifications({ orders = [], products = [], promotions = [] }) {
+export function buildNotifications({
+  orders = [],
+  reservations = [],
+  products = [],
+  promotions = [],
+}) {
   const now = Date.now();
   const alerts = [];
 
@@ -17,6 +22,21 @@ export function buildNotifications({ orders = [], products = [], promotions = []
         message: `${o.orderNumber || o.id} · ${o.firstName || ""} ${o.lastName || ""} · $${Math.round(o.total || 0)}`,
         at: o.createdAt?.toMillis?.() || now,
         href: "#/pedidos",
+      });
+    });
+
+  reservations
+    .filter((reservation) => reservation.status === "pendiente")
+    .slice(0, 25)
+    .forEach((reservation) => {
+      alerts.push({
+        id: `reservation-new-${reservation.id}`,
+        type: "reservation",
+        level: "info",
+        title: "Nueva reserva",
+        message: `${reservation.name || "Cliente"} · ${reservation.date || ""} ${reservation.time || ""} · ${reservation.guests || 0} personas`,
+        at: reservation.createdAt?.toMillis?.() || now,
+        href: "#/reservas",
       });
     });
 
