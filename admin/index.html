@@ -114,7 +114,7 @@
         if (msg) {
           msg.hidden = false;
           msg.textContent =
-            "No se pudo cargar el panel. Usá http://localhost:5173/admin/ con npm run dev, o regenerá el build (npm run build).";
+            "No se pudo cargar el panel. En Vercel → Settings → Environment Variables cargá VITE_FIREBASE_* y VITE_ADMIN_UID, luego Redeploy.";
         }
       }, 16000);
     </script>

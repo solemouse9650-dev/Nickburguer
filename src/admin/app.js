@@ -1,10 +1,23 @@
-import {
-  loginAdmin,
-  logoutAdmin,
-  requireAdmin,
-  watchAuth,
-} from "../firebase/auth.js";
 import { showToast } from "../utils/toast.js";
+
+/** @type {typeof import("../firebase/auth.js") | null} */
+let authApi = null;
+
+async function loadAuth() {
+  if (authApi) return authApi;
+  try {
+    authApi = await import("../firebase/auth.js");
+    return authApi;
+  } catch (err) {
+    const msg = String(err?.message || err || "");
+    if (/Faltan variables de Firebase/i.test(msg) || /VITE_FIREBASE/i.test(msg)) {
+      throw new Error(
+        "Faltan variables de Firebase en Vercel. En el proyecto → Settings → Environment Variables agregá VITE_FIREBASE_* y VITE_ADMIN_UID, después Redeploy."
+      );
+    }
+    throw err;
+  }
+}
 
 const titles = {
   dashboard: "Dashboard",
@@ -166,6 +179,7 @@ function teardownApp() {
 function bindShell() {
   document.getElementById("logoutBtn")?.addEventListener("click", async () => {
     try {
+      const { logoutAdmin } = await loadAuth();
       await logoutAdmin();
     } finally {
       teardownApp();
@@ -217,6 +231,7 @@ function bindLoginForm() {
     if (statusEl) statusEl.textContent = "Autenticando...";
 
     try {
+      const { loginAdmin } = await loadAuth();
       const user = await loginAdmin(email, password);
       showToast("Sesión iniciada", "success");
       if (statusEl) statusEl.textContent = "";
@@ -274,18 +289,20 @@ async function boot() {
     });
   });
 
-  if (!authListenerBound) {
-    authListenerBound = true;
-    authUnsubscribe = watchAuth((user) => {
-      if (!appReady) return;
-      if (!user) {
-        teardownApp();
-        showLogin("Sesión finalizada.");
-      }
-    });
-  }
-
   try {
+    const { requireAdmin, watchAuth } = await loadAuth();
+
+    if (!authListenerBound) {
+      authListenerBound = true;
+      authUnsubscribe = watchAuth((user) => {
+        if (!appReady) return;
+        if (!user) {
+          teardownApp();
+          showLogin("Sesión finalizada.");
+        }
+      });
+    }
+
     const user = await requireAdmin();
     clearTimeout(bootWatchdog);
     await enterApp(user);
