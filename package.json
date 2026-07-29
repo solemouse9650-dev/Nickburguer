@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "validate:demo": "node src/seed/validateSeedCli.js",
     "check": "npm run validate:demo && npm run build",
+    "verify:panel": "node --env-file=.env.local src/seed/verifyPanel.js",
     "seed": "node --env-file=.env.local src/seed/seed.js"
   },
   "dependencies": {

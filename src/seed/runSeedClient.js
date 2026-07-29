@@ -8,6 +8,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  updateDoc,
 } from "firebase/firestore";
 import { auth, db } from "../firebase/config.js";
 import { DEFAULT_SETTINGS } from "../services/settings.js";
@@ -115,6 +116,7 @@ export async function runSeedClient() {
 
   for (const c of SEED_CUSTOMERS) {
     const { id, ...data } = c;
+    const desiredTotalOrders = Math.max(1, Number(data.totalOrders || 1));
     const customerDates = SEED_ORDERS.filter((order) => order.phone === id)
       .map((order) => demoDate(order))
       .sort((a, b) => a - b);
@@ -125,6 +127,7 @@ export async function runSeedClient() {
       {
         ...data,
         phone: id,
+        totalOrders: 1,
         registeredAt: firstPurchase,
         firstPurchaseAt: firstPurchase,
         lastPurchaseAt: lastPurchase,
@@ -132,6 +135,12 @@ export async function runSeedClient() {
       },
       { merge: true }
     );
+    if (desiredTotalOrders > 1) {
+      await updateDoc(doc(db, "customers", id), {
+        totalOrders: desiredTotalOrders,
+        updatedAt: serverTimestamp(),
+      });
+    }
   }
 
   let maxCounter = 0;
@@ -171,10 +180,15 @@ export async function runSeedClient() {
   const currentCounter = counterSnapshot.exists()
     ? Number(counterSnapshot.data().value || 0)
     : 0;
+  const lastSeedOrder = SEED_ORDERS.find((order) =>
+    String(order.orderNumber || "").endsWith(String(maxCounter).padStart(6, "0"))
+  );
   await setDoc(
     counterRef,
     {
       value: Math.max(currentCounter, maxCounter, SEED_ORDERS.length),
+      lastOrderId: lastSeedOrder?.id || "",
+      lastOrderNumber: lastSeedOrder?.orderNumber || "",
       updatedAt: serverTimestamp(),
     },
     { merge: true }

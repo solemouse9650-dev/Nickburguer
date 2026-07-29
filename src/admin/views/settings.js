@@ -414,7 +414,7 @@ function validateSettings(next) {
   ];
   urlFields.forEach(([label, value]) => {
     const text = String(value || "").trim();
-    if (!text || text.startsWith("/")) return;
+    if (!text || text.startsWith("/") || text.startsWith("data:image/")) return;
     try {
       const parsed = new URL(text);
       if (parsed.protocol !== "https:") throw new Error();

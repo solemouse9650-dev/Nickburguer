@@ -116,7 +116,8 @@ service cloud.firestore {
     match /customers/{customerId} {
       allow read: if isAdmin();
       // Checkout público: crear cliente nuevo al primer pedido
-      allow create: if request.resource.data.phone is string
+      allow create: if isAdmin() || (
+        request.resource.data.phone is string
         && request.resource.data.phone == customerId
         && request.resource.data.phone.matches('^[0-9]{8,15}$')
         && request.resource.data.totalOrders == 1
@@ -127,7 +128,8 @@ service cloud.firestore {
           'id', 'firstName', 'lastName', 'email', 'address', 'phone', 'status',
           'updatedAt', 'lastPurchaseAt', 'totalOrders', 'totalSpent',
           'firstPurchaseAt', 'registeredAt'
-        ]);
+        ])
+      );
       // Checkout público: incrementar pedidos/gasto sin leer el doc antes
       allow update: if isAdmin() || (
         request.resource.data.phone == resource.data.phone
@@ -147,17 +149,21 @@ service cloud.firestore {
 
     match /counters/{counterId} {
       allow read: if true;
-      allow create: if request.resource.data.value is number
+      allow create: if isAdmin() || (
+        request.resource.data.value is number
         && request.resource.data.value >= 0
         && request.resource.data.value <= 10000000
-        && counterMatchesCreatedOrder();
-      allow update: if request.resource.data.value is number
+        && counterMatchesCreatedOrder()
+      );
+      allow update: if isAdmin() || (
+        request.resource.data.value is number
         && request.resource.data.value == resource.data.value + 1
         && request.resource.data.value <= 10000000
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'value', 'lastOrderId', 'lastOrderNumber', 'updatedAt'
         ])
-        && counterMatchesCreatedOrder();
+        && counterMatchesCreatedOrder()
+      );
       allow delete: if isAdmin();
     }
   }
