@@ -2,7 +2,7 @@ import { DEFAULT_SETTINGS, listenSettings, saveSettings } from "../../services/s
 import { runSystemDiagnostics } from "../../services/diagnostics.js";
 import { deleteImageByPath, uploadImage } from "../../services/storage.js";
 import { escapeHtml } from "../../utils/format.js";
-import { showToast } from "../../utils/toast.js";
+import { showErrorToast, showToast } from "../../utils/toast.js";
 
 let unsub = null;
 let settings = structuredClone(DEFAULT_SETTINGS);
@@ -65,7 +65,7 @@ export function mountSettings(root) {
       settings = data;
       if (!formDirty) renderForm(root);
     },
-    (err) => showToast(err.message || "Error al cargar configuración", "error")
+    (err) => showErrorToast(err, "Error al cargar configuración")
   );
 }
 
@@ -281,7 +281,7 @@ function renderForm(root) {
       showToast("Logo subido y guardado", "success");
       renderForm(root);
     } catch (err) {
-      showToast(err.message || "Error al subir", "error");
+      showErrorToast(err, "Error al subir");
     }
   });
 
@@ -302,7 +302,7 @@ function renderForm(root) {
       showToast("Hero subido y guardado", "success");
       renderForm(root);
     } catch (err) {
-      showToast(err.message || "Error al subir", "error");
+      showErrorToast(err, "Error al subir");
     }
   });
 
@@ -382,7 +382,7 @@ async function persist(form) {
     formDirty = false;
     showToast("Configuración guardada", "success");
   } catch (err) {
-    showToast(err.message || "No se pudo guardar", "error");
+    showErrorToast(err, "No se pudo guardar");
   }
 }
 

@@ -20,7 +20,7 @@ import {
   productUnitPrice,
   statusLabel,
 } from "../../utils/format.js";
-import { confirmDialog, showToast } from "../../utils/toast.js";
+import { confirmDialog, showErrorToast, showToast } from "../../utils/toast.js";
 
 let unsub = null;
 let unsubProducts = null;
@@ -119,7 +119,7 @@ export function mountOrders(root) {
       renderTable(root);
     },
     (err) => {
-      showToast(err.message || "Error al cargar pedidos", "error");
+      showErrorToast(err, "Error al cargar pedidos");
       root.querySelector("#ordersTable").innerHTML =
         '<div class="empty">No se pudieron cargar los pedidos.</div>';
     }
@@ -165,7 +165,7 @@ export function mountOrders(root) {
           await deleteOrder(delBtn.dataset.delete);
           showToast("Pedido eliminado", "success");
         } catch (err) {
-          showToast(err.message || "No se pudo eliminar", "error");
+          showErrorToast(err, "No se pudo eliminar");
         }
       }
     },
@@ -185,7 +185,7 @@ export function mountOrders(root) {
           notifyCustomer({ ...order, status: sel.value }, sel.value);
         }
       } catch (err) {
-        showToast(err.message || "No se pudo actualizar", "error");
+        showErrorToast(err, "No se pudo actualizar");
       }
     },
     { signal }
@@ -552,7 +552,7 @@ function openOrderForm(order) {
       root.hidden = true;
       root.innerHTML = "";
     } catch (err) {
-      showToast(err.message || "No se pudo guardar el pedido", "error");
+      showErrorToast(err, "No se pudo guardar el pedido");
     }
   };
 

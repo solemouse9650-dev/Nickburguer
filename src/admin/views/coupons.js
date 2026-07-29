@@ -6,7 +6,7 @@ import {
   updateCoupon,
 } from "../../services/coupons.js";
 import { escapeHtml, formatDate, formatMoney } from "../../utils/format.js";
-import { confirmDialog, showToast } from "../../utils/toast.js";
+import { confirmDialog, showErrorToast, showToast } from "../../utils/toast.js";
 
 let unsub = null;
 let coupons = [];
@@ -52,7 +52,7 @@ export function mountCoupons(root) {
       renderTable(root);
     },
     (err) => {
-      showToast(err.message || "Error al cargar cupones", "error");
+      showErrorToast(err, "Error al cargar cupones");
       const wrap = root.querySelector("#couponsTable");
       if (wrap) wrap.innerHTML = '<div class="empty">No se pudieron cargar los cupones.</div>';
     }
@@ -73,7 +73,7 @@ export function mountCoupons(root) {
           await updateCoupon(c.id, { active: !c.active });
           showToast(c.active ? "Cupón desactivado" : "Cupón activado", "success");
         } catch (err) {
-          showToast(err.message || "Error", "error");
+          showErrorToast(err, "Error");
         }
       }
       if (dup) {
@@ -83,7 +83,7 @@ export function mountCoupons(root) {
           await duplicateCoupon(c);
           showToast("Cupón duplicado", "success");
         } catch (err) {
-          showToast(err.message || "Error", "error");
+          showErrorToast(err, "Error");
         }
       }
       if (del) {
@@ -92,7 +92,7 @@ export function mountCoupons(root) {
           await deleteCoupon(del.dataset.del);
           showToast("Cupón eliminado", "success");
         } catch (err) {
-          showToast(err.message || "Error", "error");
+          showErrorToast(err, "Error");
         }
       }
     },
@@ -244,7 +244,7 @@ function openForm(root, coupon) {
       showToast("Cupón guardado", "success");
       host.innerHTML = "";
     } catch (err) {
-      showToast(err.message || "Error al guardar", "error");
+      showErrorToast(err, "Error al guardar");
     }
   };
 }

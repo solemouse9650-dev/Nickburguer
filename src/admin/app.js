@@ -257,6 +257,15 @@ async function boot() {
   bindLoginForm();
   bindShell();
 
+  // Evita spinner eterno si Auth/Firestore se cuelga.
+  const bootWatchdog = setTimeout(() => {
+    if (!appReady && loginEl()?.hidden !== false) {
+      showBootError(
+        "La verificación de sesión está tardando demasiado. Revisá la conexión o intentá nuevamente."
+      );
+    }
+  }, 15000);
+
   window.addEventListener("hashchange", () => {
     if (!appReady) return;
     route().catch((err) => {
@@ -278,8 +287,10 @@ async function boot() {
 
   try {
     const user = await requireAdmin();
+    clearTimeout(bootWatchdog);
     await enterApp(user);
   } catch (err) {
+    clearTimeout(bootWatchdog);
     const code = err?.message || "";
     if (code === "UNAUTHENTICATED" || code === "FORBIDDEN") {
       showLogin(code === "FORBIDDEN" ? "No tenés permisos de administrador." : "");

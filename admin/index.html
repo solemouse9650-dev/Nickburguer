@@ -99,5 +99,24 @@
 
     <div class="modal-root" id="modalRoot" hidden></div>
     <script type="module" src="/src/admin/app.js"></script>
+    <script>
+      // Si el módulo no arranca (HTML en vez de JS, error de red, etc.), no dejar el spinner eterno.
+      window.setTimeout(function () {
+        var boot = document.getElementById("bootLoading");
+        var login = document.getElementById("loginView");
+        var app = document.getElementById("adminApp");
+        if (!boot || boot.hidden) return;
+        if ((login && !login.hidden) || (app && !app.hidden)) return;
+        if (document.getElementById("bootErrorPanel")) return;
+        var spinner = boot.querySelector(".spinner");
+        var msg = document.getElementById("bootMessage");
+        if (spinner) spinner.hidden = true;
+        if (msg) {
+          msg.hidden = false;
+          msg.textContent =
+            "No se pudo cargar el panel. Usá http://localhost:5173/admin/ con npm run dev, o regenerá el build (npm run build).";
+        }
+      }, 16000);
+    </script>
   </body>
 </html>

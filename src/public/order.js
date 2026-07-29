@@ -9,7 +9,7 @@ import {
   haversineKm,
   normalizePhone,
 } from "../utils/format.js";
-import { showToast } from "../utils/toast.js";
+import { showErrorToast, showToast } from "../utils/toast.js";
 import { Cart } from "./cart.js";
 import { getProductById, store } from "./store.js";
 
@@ -203,7 +203,7 @@ export const OrderFlow = (() => {
     }
     if (!Cart.add(product, 1)) {
       showToast(
-        "Podés combinar hasta 3 productos distintos por pedido. Ajustá cantidades desde el carrito.",
+        "Podés combinar hasta 20 productos distintos por pedido. Ajustá cantidades desde el carrito.",
         "info"
       );
       return;
@@ -834,7 +834,7 @@ export const OrderFlow = (() => {
       showStep("confirm");
       showToast("Pedido guardado correctamente", "success");
     } catch (err) {
-      showToast(err?.message || "No se pudo crear el pedido. Intentá de nuevo.", "error");
+      showErrorToast(err, "No se pudo crear el pedido. Intentá de nuevo.");
       els.btnNext.disabled = false;
       els.btnNext.textContent = "Finalizar Compra";
     } finally {

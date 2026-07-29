@@ -22,16 +22,14 @@ npx firebase-tools use nick-d259e
 npx firebase-tools deploy --only firestore:rules,firestore:indexes,storage --project nick-d259e
 ```
 
-La cuenta activa debe ser propietaria o tener permisos de Firebase Rules, Firestore Indexes,
-Storage y `serviceusage.services.use`. Verificá la sesión con:
+**Importante:** la cuenta de Firebase CLI debe figurar en `projects:list` con acceso a
+`nick-d259e`. Si el deploy da 403, publicá las reglas a mano:
 
-```bash
-npx firebase-tools projects:list
-```
+1. Abrí https://console.firebase.google.com/project/nick-d259e/firestore/rules
+2. Pegá el contenido completo de `firestore.rules` del repo
+3. Publish
 
-**Crítico para el checkout:** las reglas de `/customers` deben permitir create/update desde invitados (sin Auth) **sin** permitir `getDoc`/`read` público. Si no publicás estas reglas, el pedido se guarda pero el cliente puede ver `Missing or insufficient permissions` al finalizar (y antes se cortaba la pantalla de pago).
-
-Incluye también: lectura pública de cupones e incremento de usos al aplicar un cupón en el checkout.
+Sin esto pueden aparecer errores de permisos en pedidos, panel o reservas.
 
 ## 3) Firebase Storage
 

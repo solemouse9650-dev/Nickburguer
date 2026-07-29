@@ -7,7 +7,7 @@ import {
   updateReservationStatus,
 } from "../../services/reservations.js";
 import { escapeHtml, formatDate } from "../../utils/format.js";
-import { confirmDialog, showToast } from "../../utils/toast.js";
+import { confirmDialog, showErrorToast, showToast } from "../../utils/toast.js";
 
 let unsubscribe = null;
 let clickController = null;
@@ -86,7 +86,7 @@ export function mountReservations(root) {
           await deleteReservation(deleteButton.dataset.deleteReservation);
           showToast("Reserva eliminada", "success");
         } catch (error) {
-          showToast(error.message || "No se pudo eliminar la reserva", "error");
+          showErrorToast(error, "No se pudo eliminar la reserva");
         }
       }
     },
@@ -102,7 +102,7 @@ export function mountReservations(root) {
         await updateReservationStatus(select.dataset.reservationStatus, select.value);
         showToast("Estado actualizado", "success");
       } catch (error) {
-        showToast(error.message || "No se pudo actualizar", "error");
+        showErrorToast(error, "No se pudo actualizar");
       } finally {
         select.disabled = false;
       }
@@ -116,7 +116,7 @@ export function mountReservations(root) {
       render(root);
     },
     (error) => {
-      showToast(error.message || "No se pudieron cargar las reservas", "error");
+      showErrorToast(error, "No se pudieron cargar las reservas");
       root.querySelector("#reservationsTable").innerHTML =
         '<div class="empty">No se pudieron cargar las reservas.</div>';
     }
@@ -243,7 +243,7 @@ function openForm(root, reservation = null) {
       host.innerHTML = "";
       editing = null;
     } catch (error) {
-      showToast(error.message || "No se pudo guardar la reserva", "error");
+      showErrorToast(error, "No se pudo guardar la reserva");
     } finally {
       button.disabled = false;
     }

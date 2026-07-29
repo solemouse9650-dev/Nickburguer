@@ -8,7 +8,7 @@ import {
 import { listenCategories } from "../../services/categories.js";
 import { deleteImageByPath, uploadImage } from "../../services/storage.js";
 import { escapeHtml, formatMoney, productUnitPrice } from "../../utils/format.js";
-import { confirmDialog, showToast } from "../../utils/toast.js";
+import { confirmDialog, showErrorToast, showToast } from "../../utils/toast.js";
 
 let unsub = null;
 let unsubCats = null;
@@ -63,7 +63,7 @@ export function mountProducts(root) {
       renderTable(root);
     },
     (err) => {
-      showToast(err.message || "Error al cargar productos", "error");
+      showErrorToast(err, "Error al cargar productos");
       const wrap = root.querySelector("#productsTable");
       if (wrap) wrap.innerHTML = '<div class="empty">No se pudieron cargar los productos.</div>';
     }
@@ -100,7 +100,7 @@ export function mountProducts(root) {
           await duplicateProduct(p);
           showToast("Producto duplicado", "success");
         } catch (err) {
-          showToast(err.message || "Error al duplicar", "error");
+          showErrorToast(err, "Error al duplicar");
         }
       }
       if (del) {
@@ -111,7 +111,7 @@ export function mountProducts(root) {
           if (p?.imagePath) deleteImageByPath(p.imagePath).catch(() => {});
           showToast("Producto eliminado", "success");
         } catch (err) {
-          showToast(err.message || "Error al eliminar", "error");
+          showErrorToast(err, "Error al eliminar");
         }
       }
     },
@@ -392,7 +392,7 @@ async function saveProduct(e, root) {
     editing = null;
   } catch (err) {
     if (!saved && uploadedPath) deleteImageByPath(uploadedPath).catch(() => {});
-    showToast(err.message || "Error al guardar", "error");
+    showErrorToast(err, "Error al guardar");
   } finally {
     btn.disabled = false;
     btn.textContent = "Guardar";

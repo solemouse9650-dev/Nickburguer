@@ -6,7 +6,7 @@ import {
 } from "../../services/promotions.js";
 import { deleteImageByPath, uploadImage } from "../../services/storage.js";
 import { escapeHtml, formatDate } from "../../utils/format.js";
-import { confirmDialog, showToast } from "../../utils/toast.js";
+import { confirmDialog, showErrorToast, showToast } from "../../utils/toast.js";
 
 function toInputDate(value) {
   if (!value) return "";
@@ -61,7 +61,7 @@ export function mountPromotions(root) {
       renderTable(root);
     },
     (err) => {
-      showToast(err.message || "Error al cargar promociones", "error");
+      showErrorToast(err, "Error al cargar promociones");
       const wrap = root.querySelector("#promosTable");
       if (wrap) wrap.innerHTML = '<div class="empty">No se pudieron cargar las promociones.</div>';
     }
@@ -81,7 +81,7 @@ export function mountPromotions(root) {
           await updatePromotion(p.id, { active: !p.active });
           showToast(p.active ? "Promoción desactivada" : "Promoción activada", "success");
         } catch (err) {
-          showToast(err.message || "Error", "error");
+          showErrorToast(err, "Error");
         }
       }
       if (del) {
@@ -92,7 +92,7 @@ export function mountPromotions(root) {
           if (p?.imagePath) deleteImageByPath(p.imagePath).catch(() => {});
           showToast("Promoción eliminada", "success");
         } catch (err) {
-          showToast(err.message || "Error al eliminar", "error");
+          showErrorToast(err, "Error al eliminar");
         }
       }
     },
@@ -238,7 +238,7 @@ function openForm(root, promo) {
       host.innerHTML = "";
     } catch (err) {
       if (!saved && uploadedPath) deleteImageByPath(uploadedPath).catch(() => {});
-      showToast(err.message || "Error al guardar", "error");
+      showErrorToast(err, "Error al guardar");
     } finally {
       btn.disabled = false;
     }

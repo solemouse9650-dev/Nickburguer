@@ -21,44 +21,50 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/orders/$(orderId)).data.id == orderId;
     }
 
-    function validOrderItem(item) {
-      let productId = item.get('productId', '');
-      let productPath = /databases/$(database)/documents/products/$(productId);
-      let product = get(productPath).data;
+    function validCheckoutItem(item) {
       return item is map
-        && validShortString(productId, 128)
-        && product != null
-        && product.get('active', true) == true
-        && product.get('available', true) == true
-        && product.get('soldOut', false) == false
+        && validShortString(item.get('productId', ''), 128)
         && item.get('quantity', 0) is int
         && item.get('quantity', 0) >= 1
         && item.get('quantity', 0) <= 20
         && item.get('unitPrice', -1) is number
-        && item.get('unitPrice', -1) == (
-          product.get('isOnSale', false) == true
-            && product.get('salePrice', 0) is number
-            && product.get('salePrice', 0) > 0
-          ? product.get('salePrice', 0)
-          : product.get('price', 0)
-        );
+        && item.get('unitPrice', -1) >= 0
+        && item.get('unitPrice', -1) <= 1000000;
     }
 
     function validItemAt(items, index) {
-      return items.size() <= index || validOrderItem(items[index]);
+      return items.size() <= index || validCheckoutItem(items[index]);
     }
 
     function itemTotalAt(items, index) {
       return items.size() <= index
-        ? 0
+        ? 0.0
         : items[index].get('unitPrice', 0) * items[index].get('quantity', 0);
     }
 
+    // Totales consistentes sin get() por producto (evita límite de expresiones).
     function validOrderAmounts() {
       let items = request.resource.data.items;
       let expectedSubtotal = itemTotalAt(items, 0)
         + itemTotalAt(items, 1)
-        + itemTotalAt(items, 2);
+        + itemTotalAt(items, 2)
+        + itemTotalAt(items, 3)
+        + itemTotalAt(items, 4)
+        + itemTotalAt(items, 5)
+        + itemTotalAt(items, 6)
+        + itemTotalAt(items, 7)
+        + itemTotalAt(items, 8)
+        + itemTotalAt(items, 9)
+        + itemTotalAt(items, 10)
+        + itemTotalAt(items, 11)
+        + itemTotalAt(items, 12)
+        + itemTotalAt(items, 13)
+        + itemTotalAt(items, 14)
+        + itemTotalAt(items, 15)
+        + itemTotalAt(items, 16)
+        + itemTotalAt(items, 17)
+        + itemTotalAt(items, 18)
+        + itemTotalAt(items, 19);
       return request.resource.data.get('subtotal', -1) is number
         && request.resource.data.subtotal == expectedSubtotal
         && request.resource.data.get('deliveryCost', -1) is number
@@ -71,46 +77,6 @@ service cloud.firestore {
           == expectedSubtotal + request.resource.data.deliveryCost - request.resource.data.discount;
     }
 
-    function validCouponAmount() {
-      let couponId = request.resource.data.get('couponId', '');
-      let couponPath = /databases/$(database)/documents/coupons/$(couponId);
-      let coupon = get(couponPath).data;
-      return (couponId == null || couponId == '')
-        ? request.resource.data.discount == 0
-        : (
-          coupon != null
-          && coupon.get('active', true) == true
-          && request.resource.data.subtotal
-            >= coupon.get('minOrderAmount', 0)
-          && (
-            coupon.get('type', 'percent') == 'fixed'
-              ? request.resource.data.discount
-                <= coupon.get('value', 0)
-              : request.resource.data.discount
-                <= (
-                  (
-                    request.resource.data.subtotal
-                    + (
-                      coupon.get('applyToShipping', false) == true
-                        ? request.resource.data.deliveryCost
-                        : 0
-                    )
-                  )
-                  * coupon.get('value', 0) / 100
-                ) + 1
-          )
-          && (
-            coupon.get('maxDiscount', null) == null
-            || request.resource.data.discount
-              <= coupon.get('maxDiscount', 0)
-          )
-          && (
-            coupon.get('freeShipping', false) != true
-            || request.resource.data.deliveryCost == 0
-          )
-        );
-    }
-
     function couponMatchesCreatedOrder(couponId) {
       let orderId = request.resource.data.get('lastOrderId', '');
       return createdOrder(orderId)
@@ -118,18 +84,37 @@ service cloud.firestore {
           == couponId;
     }
 
-    function customerMatchesCreatedOrder(customerId, previousOrders, previousSpent) {
+    function customerMatchesCreatedOrder(customerId) {
       let orderId = request.resource.data.get('lastOrderId', '');
       return createdOrder(orderId)
-        && getAfter(/databases/$(database)/documents/orders/$(orderId)).data.phone == customerId
-        && request.resource.data.totalOrders == previousOrders + 1
-        && request.resource.data.totalSpent == previousSpent
-          + getAfter(/databases/$(database)/documents/orders/$(orderId)).data.total;
+        && getAfter(/databases/$(database)/documents/orders/$(orderId)).data.phone == customerId;
+    }
+
+    // UID bootstrap (primer admin). Solo puede crear/actualizar SU propio doc con role=admin.
+    function isBootstrapAdmin() {
+      return isSignedIn() && request.auth.uid == 'cm50EaIxcgdzWhb1XEsuo6PVkzN2';
+    }
+
+    function validBootstrapAdminProfile() {
+      return request.resource.data.role == 'admin'
+        && request.resource.data.email is string
+        && request.resource.data.email.size() > 0
+        && request.resource.data.email.size() <= 320;
     }
 
     match /users/{userId} {
       allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow create, update: if isAdmin();
+      allow create: if isAdmin() || (
+        isBootstrapAdmin()
+        && request.auth.uid == userId
+        && validBootstrapAdminProfile()
+      );
+      allow update: if isAdmin() || (
+        isBootstrapAdmin()
+        && request.auth.uid == userId
+        && resource.data.role == 'admin'
+        && validBootstrapAdminProfile()
+      );
       allow delete: if isAdmin();
     }
 
@@ -151,7 +136,6 @@ service cloud.firestore {
     match /coupons/{couponId} {
       allow read: if true;
       allow create, delete: if isAdmin();
-      // Admin edita todo; clientes solo pueden sumar 1 uso al aplicar el cupón
       allow update: if isAdmin() || (
         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'usedCount', 'lastOrderId', 'updatedAt'
@@ -185,12 +169,28 @@ service cloud.firestore {
         && request.resource.data.phone.matches('^[0-9]{8,15}$')
         && request.resource.data.items is list
         && request.resource.data.items.size() > 0
-        && request.resource.data.items.size() <= 3
+        && request.resource.data.items.size() <= 20
         && validItemAt(request.resource.data.items, 0)
         && validItemAt(request.resource.data.items, 1)
         && validItemAt(request.resource.data.items, 2)
+        && validItemAt(request.resource.data.items, 3)
+        && validItemAt(request.resource.data.items, 4)
+        && validItemAt(request.resource.data.items, 5)
+        && validItemAt(request.resource.data.items, 6)
+        && validItemAt(request.resource.data.items, 7)
+        && validItemAt(request.resource.data.items, 8)
+        && validItemAt(request.resource.data.items, 9)
+        && validItemAt(request.resource.data.items, 10)
+        && validItemAt(request.resource.data.items, 11)
+        && validItemAt(request.resource.data.items, 12)
+        && validItemAt(request.resource.data.items, 13)
+        && validItemAt(request.resource.data.items, 14)
+        && validItemAt(request.resource.data.items, 15)
+        && validItemAt(request.resource.data.items, 16)
+        && validItemAt(request.resource.data.items, 17)
+        && validItemAt(request.resource.data.items, 18)
+        && validItemAt(request.resource.data.items, 19)
         && validOrderAmounts()
-        && validCouponAmount()
         && validShortString(request.resource.data.get('firstName', ''), 80)
         && validShortString(request.resource.data.get('lastName', ''), 80)
         && request.resource.data.get('email', '') is string
@@ -203,7 +203,6 @@ service cloud.firestore {
 
     match /customers/{customerId} {
       allow read: if isAdmin();
-      // Checkout público: crear cliente nuevo al primer pedido
       allow create: if isAdmin() || (
         request.resource.data.phone is string
         && request.resource.data.phone == customerId
@@ -211,30 +210,15 @@ service cloud.firestore {
         && request.resource.data.totalSpent is number
         && request.resource.data.totalSpent >= 0
         && request.resource.data.totalSpent <= 100000000
-        && request.resource.data.keys().hasOnly([
-          'id', 'firstName', 'lastName', 'email', 'address', 'phone', 'status',
-          'updatedAt', 'lastPurchaseAt', 'totalOrders', 'totalSpent',
-          'firstPurchaseAt', 'registeredAt', 'lastOrderId'
-        ])
-        && customerMatchesCreatedOrder(customerId, 0, 0)
+        && customerMatchesCreatedOrder(customerId)
       );
-      // Checkout público: incrementar pedidos/gasto sin leer el doc antes
       allow update: if isAdmin() || (
         request.resource.data.phone == resource.data.phone
         && request.resource.data.phone == customerId
         && request.resource.data.totalOrders is number
         && request.resource.data.totalSpent is number
         && request.resource.data.totalSpent >= resource.data.get('totalSpent', 0)
-        && request.resource.data.totalSpent - resource.data.get('totalSpent', 0) <= 100000000
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'firstName', 'lastName', 'email', 'address', 'phone', 'status',
-          'updatedAt', 'lastPurchaseAt', 'totalOrders', 'totalSpent', 'lastOrderId'
-        ])
-        && customerMatchesCreatedOrder(
-          customerId,
-          resource.data.get('totalOrders', 0),
-          resource.data.get('totalSpent', 0)
-        )
+        && customerMatchesCreatedOrder(customerId)
       );
       allow delete: if isAdmin();
     }

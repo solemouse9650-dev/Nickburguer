@@ -24,7 +24,7 @@ import {
   startOfMonth,
   statusLabel,
 } from "../../utils/format.js";
-import { showToast } from "../../utils/toast.js";
+import { showErrorToast, showToast } from "../../utils/toast.js";
 
 let unsubs = [];
 let loadError = false;
@@ -97,11 +97,12 @@ export function mountDashboard(root) {
   let products = [];
   let customers = [];
 
-  const onPermError = (err) => {
+  const onPermError = () => {
     loadError = true;
-    root.querySelector("#permBanner").hidden = false;
-    root.querySelector("#seedBanner").hidden = true;
-    showToast(err?.message || "Error de permisos", "error");
+    const banner = root.querySelector("#permBanner");
+    const seed = root.querySelector("#seedBanner");
+    if (banner) banner.hidden = false;
+    if (seed) seed.hidden = true;
   };
 
   const render = () => {
@@ -129,7 +130,7 @@ export function mountDashboard(root) {
         "success"
       );
     } catch (err) {
-      showToast(err.message || "No se pudo cargar la demo", "error");
+      showErrorToast(err, "No se pudo cargar la demo");
     } finally {
       btn.disabled = false;
       btn.textContent = "Cargar datos demo";

@@ -4,7 +4,7 @@ import { listenProducts } from "../../services/products.js";
 import { listenPromotions } from "../../services/promotions.js";
 import { buildNotifications } from "../../services/notifications.js";
 import { escapeHtml, formatDate } from "../../utils/format.js";
-import { showToast } from "../../utils/toast.js";
+import { showErrorToast, showToast } from "../../utils/toast.js";
 
 let unsubs = [];
 
@@ -44,8 +44,8 @@ export function mountNotifications(root) {
       .join("")}</div>`;
   };
 
-  unsubs.push(listenOrders((d) => { orders = d; paint(); }, (e) => showToast(e.message, "error")));
-  unsubs.push(listenReservations((d) => { reservations = d; paint(); }));
+  unsubs.push(listenOrders((d) => { orders = d; paint(); }, (e) => showErrorToast(e)));
+  unsubs.push(listenReservations((d) => { reservations = d; paint(); }, (e) => showErrorToast(e)));
   unsubs.push(listenProducts((d) => { products = d; paint(); }));
   unsubs.push(listenPromotions((d) => { promotions = d; paint(); }));
 }

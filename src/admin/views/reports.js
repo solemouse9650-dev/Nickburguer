@@ -27,7 +27,7 @@ import {
   statusLabel,
   normalizeOrderStatus,
 } from "../../utils/format.js";
-import { showToast } from "../../utils/toast.js";
+import { showErrorToast, showToast } from "../../utils/toast.js";
 
 let unsubs = [];
 let orders = [];
@@ -118,7 +118,7 @@ export function mountReports(root) {
         paint(root);
       },
       (e) => {
-        showToast(e.message, "error");
+        showErrorToast(e);
         const wrap = root.querySelector("#reportTable");
         if (wrap) wrap.innerHTML = '<div class="empty">No se pudieron cargar los reportes.</div>';
       }

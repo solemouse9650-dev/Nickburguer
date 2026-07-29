@@ -267,8 +267,8 @@ export async function createOrderFromCheckout(payload) {
     let discount = 0;
     let deliveryCost = Number(payload.deliveryCost || 0);
     const requestedItems = Array.isArray(payload.items) ? payload.items : [];
-    if (!requestedItems.length || requestedItems.length > 3) {
-      throw new Error("El pedido debe tener entre 1 y 3 productos distintos.");
+    if (!requestedItems.length || requestedItems.length > 20) {
+      throw new Error("El pedido debe tener entre 1 y 20 productos distintos.");
     }
     const productSnapshots = await Promise.all(
       requestedItems.map((item) => tx.get(doc(db, "products", String(item.productId || ""))))

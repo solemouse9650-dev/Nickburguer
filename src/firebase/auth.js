@@ -3,8 +3,10 @@ import {
   signInWithEmailAndPassword,
   signOut,
 } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "./config.js";
+
+const BOOTSTRAP_ADMIN_UID = String(import.meta.env.VITE_ADMIN_UID || "").trim();
 
 function withTimeout(promise, ms, label) {
   let timer;
@@ -14,6 +16,10 @@ function withTimeout(promise, ms, label) {
       timer = setTimeout(() => reject(new Error(label)), ms);
     }),
   ]);
+}
+
+function isBootstrapAdmin(user) {
+  return Boolean(BOOTSTRAP_ADMIN_UID && user?.uid === BOOTSTRAP_ADMIN_UID);
 }
 
 /**
@@ -37,11 +43,30 @@ async function ensureAdminProfile(user) {
       10000,
       "No se pudo leer el perfil de administrador (timeout Firestore)."
     );
-    return snap.exists() && snap.data()?.role === "admin";
+    if (snap.exists() && snap.data()?.role === "admin") return true;
+
+    // Solo el UID bootstrap puede auto-crear su perfil admin (primera vez).
+    if (!isBootstrapAdmin(user)) return false;
+
+    await withTimeout(
+      setDoc(
+        ref,
+        {
+          email: user.email || "",
+          role: "admin",
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      ),
+      10000,
+      "No se pudo crear el perfil de administrador (timeout Firestore)."
+    );
+    return true;
   } catch (err) {
     if (err?.code === "permission-denied") {
       throw new Error(
-        "Firestore rechazó la lectura del perfil admin. Verificá el documento users y publicá las reglas del proyecto."
+        "Firestore rechazó la lectura/escritura del perfil admin. Verificá el documento users y publicá las reglas del proyecto."
       );
     }
     throw err;

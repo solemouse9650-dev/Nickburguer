@@ -9,7 +9,7 @@ import {
   getWhatsAppNumber,
   productUnitPrice,
 } from "../utils/format.js";
-import { showToast } from "../utils/toast.js";
+import { showErrorToast, showToast } from "../utils/toast.js";
 import { FAQ_ITEMS } from "./faq.js";
 import { OrderFlow } from "./order.js";
 import { store } from "./store.js";

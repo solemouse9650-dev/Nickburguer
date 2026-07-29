@@ -57,7 +57,7 @@ export const Cart = (() => {
     const quantity = Math.max(1, Number(qty) || 1);
     const unitPrice = productUnitPrice(product);
     const existing = items.find((it) => it.productId === product.id);
-    if (!existing && items.length >= 3) return null;
+    if (!existing && items.length >= 20) return null;
     if (existing) {
       existing.quantity += quantity;
       existing.unitPrice = unitPrice;

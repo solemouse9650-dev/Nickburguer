@@ -9,7 +9,7 @@ import {
 import { deleteImageByPath, uploadImage } from "../../services/storage.js";
 import { hasProductsInCategory } from "../../services/products.js";
 import { escapeHtml } from "../../utils/format.js";
-import { confirmDialog, showToast } from "../../utils/toast.js";
+import { confirmDialog, showErrorToast, showToast } from "../../utils/toast.js";
 
 let unsub = null;
 let categories = [];
@@ -48,7 +48,7 @@ export function mountCategories(root) {
         const ok = await seedDefaultCategories();
         showToast(ok ? "Categorías iniciales creadas" : "Ya hay categorías cargadas", "success");
       } catch (err) {
-        showToast(err.message || "Error", "error");
+        showErrorToast(err, "Error");
       }
     },
     { signal }
@@ -60,7 +60,7 @@ export function mountCategories(root) {
       renderTable(root);
     },
     (err) => {
-      showToast(err.message || "Error al cargar categorías", "error");
+      showErrorToast(err, "Error al cargar categorías");
       const wrap = root.querySelector("#catsTable");
       if (wrap) wrap.innerHTML = '<div class="empty">No se pudieron cargar las categorías.</div>';
     }
@@ -87,7 +87,7 @@ export function mountCategories(root) {
           if (cat?.imagePath) deleteImageByPath(cat.imagePath).catch(() => {});
           showToast("Categoría eliminada", "success");
         } catch (err) {
-          showToast(err.message || "Error", "error");
+          showErrorToast(err, "Error");
         }
       }
       if (up || down) {
@@ -102,7 +102,7 @@ export function mountCategories(root) {
           await reorderCategories(next.map((c) => c.id));
           showToast("Orden actualizado", "success");
         } catch (err) {
-          showToast(err.message || "Error al reordenar", "error");
+          showErrorToast(err, "Error al reordenar");
         }
       }
     },
@@ -239,7 +239,7 @@ function openForm(root, cat) {
       host.innerHTML = "";
     } catch (err) {
       if (!saved && uploadedPath) deleteImageByPath(uploadedPath).catch(() => {});
-      showToast(err.message || "Error al guardar", "error");
+      showErrorToast(err, "Error al guardar");
     }
   };
 }

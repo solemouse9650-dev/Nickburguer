@@ -8,7 +8,7 @@ import {
   normalizeOrderStatus,
   statusLabel,
 } from "../../utils/format.js";
-import { confirmDialog, showToast } from "../../utils/toast.js";
+import { confirmDialog, showErrorToast, showToast } from "../../utils/toast.js";
 
 let unsub = null;
 let unsubSettings = null;
@@ -76,7 +76,7 @@ export function mountCustomers(root) {
       renderTable(root);
     },
     (err) => {
-      showToast(err.message || "Error al cargar clientes", "error");
+      showErrorToast(err, "Error al cargar clientes");
       const wrap = root.querySelector("#customersTable");
       if (wrap) wrap.innerHTML = '<div class="empty">No se pudieron cargar los clientes.</div>';
     }
@@ -274,7 +274,7 @@ function openProfile(root, customer) {
       });
       showToast("Cliente actualizado", "success");
     } catch (err) {
-      showToast(err.message || "Error", "error");
+      showErrorToast(err, "Error");
     }
   });
 
@@ -287,7 +287,7 @@ function openProfile(root, customer) {
       profileUnsub = null;
       host.innerHTML = "";
     } catch (err) {
-      showToast(err.message || "No se pudo eliminar", "error");
+      showErrorToast(err, "No se pudo eliminar");
     }
   });
 
@@ -296,7 +296,7 @@ function openProfile(root, customer) {
       await updateCustomer(customer.id, { status: e.target.value });
       showToast("Estado actualizado", "success");
     } catch (err) {
-      showToast(err.message || "Error", "error");
+      showErrorToast(err, "Error");
     }
   });
 
@@ -332,7 +332,7 @@ function openProfile(root, customer) {
     (err) => {
       const box = host.querySelector("#customerOrders");
       if (box) box.innerHTML = '<div class="empty">No se pudo cargar el historial.</div>';
-      showToast(err.message || "Error al cargar historial", "error");
+      showErrorToast(err, "Error al cargar historial");
     }
   );
 }
